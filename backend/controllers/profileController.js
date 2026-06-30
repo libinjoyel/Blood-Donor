@@ -12,12 +12,13 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, bloodGroup, password } = req.body;
+    const { name, phone, bloodGroup, password, address } = req.body;
     const updates = {};
 
-    if (name) updates.name = name;
-    if (phone) updates.phone = phone;
-    if (bloodGroup) updates.bloodGroup = bloodGroup;
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (bloodGroup !== undefined) updates.bloodGroup = bloodGroup;
+    if (address !== undefined) updates.address = address;
     if (password) {
       updates.password = await bcrypt.hash(password, 10);
     }

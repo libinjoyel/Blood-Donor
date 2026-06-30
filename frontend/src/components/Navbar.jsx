@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-export default function Navbar() {
+export default function Navbar({ onToggleSidebar }) {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -12,10 +12,15 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="nav-brand">Blood Donor</Link>
+      <div className="navbar-left">
+        {token && (
+          <button className="navbar-toggle" onClick={onToggleSidebar} aria-label="Toggle sidebar">
+            &#9776;
+          </button>
+        )}
+        <Link to={token ? '/dashboard' : '/'} className="nav-brand">Blood Donor</Link>
+      </div>
       <div className="nav-links">
-        <Link to="/">Home</Link>
-        {token && <Link to="/tasks">Tasks</Link>}
         {!token ? (
           <>
             <Link to="/login">Login</Link>

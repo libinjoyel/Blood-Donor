@@ -33,6 +33,25 @@ const userSchema = new mongoose.Schema({
     enum: ['donor', 'admin'],
     default: 'donor',
   },
+  address: {
+    type: String,
+    trim: true,
+  },
+  donationCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  isEligible: {
+    type: Boolean,
+    default: true,
+  },
+  lastDonationDate: {
+    type: Date,
+  },
+  nextAppointment: {
+    type: Date,
+  },
 }, {
   timestamps: true,
 });

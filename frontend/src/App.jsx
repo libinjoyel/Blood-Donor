@@ -1,29 +1,48 @@
+import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Tasks from './pages/Tasks';
+import BloodBanks from './pages/BloodBanks';
+import BloodBankDetails from './pages/BloodBankDetails';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
 import './App.css';
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <>
-      <Navbar />
-      <main className="container">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/tasks" element={
-            <ProtectedRoute>
-              <Tasks />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </main>
-    </>
+    <div className="app-layout">
+      <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+      <div className="app-body">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/blood-banks" element={<BloodBanks />} />
+            <Route path="/blood-banks/:id" element={<BloodBankDetails />} />
+          </Routes>
+        </main>
+      </div>
+      <Footer />
+    </div>
   );
 }
 
