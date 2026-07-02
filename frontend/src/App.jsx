@@ -11,6 +11,9 @@ import BloodBanks from './pages/BloodBanks';
 import BloodBankDetails from './pages/BloodBankDetails';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import BookAppointment from './pages/BookAppointment';
+import AppointmentHistory from './pages/AppointmentHistory';
+import UrgentRequests from './pages/UrgentRequests';
 import './App.css';
 
 function App() {
@@ -38,6 +41,17 @@ function App() {
             } />
             <Route path="/blood-banks" element={<BloodBanks />} />
             <Route path="/blood-banks/:id" element={<BloodBankDetails />} />
+            <Route path="/book-appointment" element={
+              <ProtectedRoute>
+                <BookAppointment />
+              </ProtectedRoute>
+            } />
+            <Route path="/appointments" element={
+              <ProtectedRoute>
+                <AppointmentHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="/urgent-requests" element={<UrgentRequests />} />
           </Routes>
         </main>
       </div>

@@ -19,6 +19,15 @@ export default function Sidebar({ isOpen, onClose }) {
           <NavLink to="/profile" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} onClick={onClose}>
             Profile
           </NavLink>
+          <NavLink to="/urgent-requests" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} onClick={onClose}>
+            Urgent Requests
+          </NavLink>
+          <NavLink to="/book-appointment" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} onClick={onClose}>
+            Book Appointment
+          </NavLink>
+          <NavLink to="/appointments" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} onClick={onClose}>
+            My Appointments
+          </NavLink>
           <NavLink to="/blood-banks" className={({ isActive }) => isActive ? 'sidebar-link active' : 'sidebar-link'} onClick={onClose}>
             Blood Banks
           </NavLink>

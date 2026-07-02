@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+
+const statusClass = (status) => {
+  if (status === 'urgent') return 'status-urgent';
+  if (status === 'fulfilled') return 'status-completed';
+  return 'status-cancelled';
+};
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -28,7 +34,7 @@ export default function Dashboard() {
   if (error) return <p className="error">{error}</p>;
   if (!data) return null;
 
-  const { user, stats } = data;
+  const { user, stats, recentRequests } = data;
 
   const cards = [
     { title: 'Appointments', value: stats.totalAppointments, icon: '📅', color: '#3498db' },
@@ -63,6 +69,27 @@ export default function Dashboard() {
           <p><strong>Blood Group:</strong> {user.bloodGroup}</p>
           <p><strong>Address:</strong> {user.address || 'Not provided'}</p>
         </div>
+
+        {recentRequests && recentRequests.length > 0 && (
+          <div className="detail-card">
+            <div className="detail-card-header">
+              <h3>Recent Urgent Requests</h3>
+              <Link to="/urgent-requests" className="view-all">View All</Link>
+            </div>
+            {recentRequests.map((req) => (
+              <div key={req._id} className="recent-request-item">
+                <div className="recent-request-left">
+                  <span className={`blood-badge req-blood`}>{req.bloodGroup}</span>
+                  <div>
+                    <p className="recent-hospital">{req.hospital}</p>
+                    <p className="recent-meta">{req.city} &middot; {req.units} unit{req.units > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <span className={`req-status ${statusClass(req.status)}`}>{req.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

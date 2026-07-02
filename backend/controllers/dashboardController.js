@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const BloodBank = require('../models/BloodBank');
+const UrgentRequest = require('../models/UrgentRequest');
 
 exports.getDashboard = async (req, res) => {
   try {
@@ -10,6 +11,10 @@ exports.getDashboard = async (req, res) => {
     const totalBloodBanks = await BloodBank.countDocuments();
 
     const totalDonors = await User.countDocuments({ role: 'donor' });
+
+    const recentRequests = await UrgentRequest.find({ status: 'urgent' })
+      .sort({ createdAt: -1 })
+      .limit(5);
 
     res.json({
       user: {
@@ -33,6 +38,7 @@ exports.getDashboard = async (req, res) => {
         totalDonors,
         totalBloodBanks,
       },
+      recentRequests,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
