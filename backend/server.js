@@ -27,6 +27,10 @@ app.use('/api/blood-bank', bloodBankRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/urgent-requests', urgentRequestRoutes);
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/donations', require('./routes/donationRoutes'));
+app.use('/api/feedback', require('./routes/feedbackRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

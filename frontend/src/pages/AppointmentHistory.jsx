@@ -31,6 +31,16 @@ export default function AppointmentHistory() {
     }
   };
 
+  const handleComplete = async (id) => {
+    if (!confirm('Mark this appointment as completed?')) return;
+    try {
+      await api.put(`/appointments/${id}/complete`);
+      fetchAppointments();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to complete');
+    }
+  };
+
   const handleReschedule = async (id) => {
     if (!newDate || !newTime) return;
     try {
@@ -112,6 +122,7 @@ export default function AppointmentHistory() {
               ) : (
                 apt.status === 'scheduled' && (
                   <div className="apt-actions">
+                    <button className="btn btn-success btn-sm" onClick={() => handleComplete(apt._id)}>Complete</button>
                     <button className="btn btn-primary btn-sm" onClick={() => setRescheduling(apt._id)}>Reschedule</button>
                     <button className="btn btn-danger btn-sm" onClick={() => handleCancel(apt._id)}>Cancel</button>
                   </div>

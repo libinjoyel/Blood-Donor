@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { book, cancel, reschedule, getMyAppointments } = require('../controllers/appointmentController');
+const { book, cancel, reschedule, complete, getMyAppointments } = require('../controllers/appointmentController');
 const { auth } = require('../middleware/auth');
 
 router.use(auth);
@@ -9,5 +9,6 @@ router.get('/', getMyAppointments);
 router.post('/', book);
 router.put('/:id/reschedule', reschedule);
 router.put('/:id/cancel', cancel);
+router.put('/:id/complete', complete);
 
 module.exports = router;
