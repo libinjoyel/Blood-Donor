@@ -24,6 +24,7 @@ import AdminAppointments from './pages/AdminAppointments';
 import AdminRequests from './pages/AdminRequests';
 import AdminFeedback from './pages/AdminFeedback';
 import AdminBloodBanks from './pages/AdminBloodBanks';
+import AdminInventory from './pages/AdminInventory';
 import './App.css';
 
 const AUTH_ROUTES = ['/login', '/register'];
@@ -80,6 +81,9 @@ function AppLayout() {
             } />
             <Route path="/admin/blood-banks" element={
               <AdminRoute><AdminBloodBanks /></AdminRoute>
+            } />
+            <Route path="/admin/inventory" element={
+              <AdminRoute><AdminInventory /></AdminRoute>
             } />
           </Routes>
         </main>

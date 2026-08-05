@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import {
   Droplets, LayoutDashboard, CalendarClock, CalendarPlus,
   Building2, User,   LogOut, X, Heart,
-  Bell, Shield,
+  Bell, Shield, Boxes,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -17,7 +17,8 @@ const NAV_ITEMS = [
 
 const ADMIN_ITEMS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { to: '/admin/blood-banks', label: 'Blood Inventory', icon: Building2 },
+  { to: '/admin/inventory', label: 'Blood Inventory', icon: Boxes },
+  { to: '/admin/blood-banks', label: 'Blood Banks', icon: Building2 },
   { to: '/admin/users', label: 'Donor Database', icon: User },
   { to: '/admin/admins', label: 'Administrators', icon: Shield },
   { to: '/admin/appointments', label: 'Appointment Requests', icon: CalendarClock },
