@@ -348,7 +348,6 @@ exports.getOverview = async (req, res) => {
     ]);
 
     const byGroup = {};
-    const allBloodGroup = allUnits.map((u) => u.bloodGroup);
     const unitList = allUnits;
 
     BLOOD_GROUPS.forEach((bg) => {

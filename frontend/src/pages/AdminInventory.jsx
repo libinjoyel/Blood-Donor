@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search, Loader2, Plus, X, Eye, Edit3, Trash2, Droplets,
   Lock, CheckCircle2, Ban, Save, CalendarDays, Package,
@@ -91,13 +92,19 @@ const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg fo
 
 export default function AdminInventory() {
   const { toast, showToast, dismissToast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [units, setUnits] = useState([]);
   const [locations, setLocations] = useState([]);
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ status: '', bloodGroup: '', component: '', storageLocation: '' });
+  const [filters, setFilters] = useState({
+    status: '',
+    bloodGroup: searchParams.get('bloodGroup') || '',
+    component: '',
+    storageLocation: '',
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
