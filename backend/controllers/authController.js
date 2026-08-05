@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       token,
-      user: { id: user._id, name, email, phone, bloodGroup, role },
+      user: { id: user._id, name, email, phone, bloodGroup, role, adminRole: user.adminRole },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -45,7 +45,7 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, phone: user.phone, bloodGroup: user.bloodGroup, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, phone: user.phone, bloodGroup: user.bloodGroup, role: user.role, adminRole: user.adminRole },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

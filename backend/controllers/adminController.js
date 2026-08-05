@@ -1,4 +1,7 @@
 const User = require('../models/User');
+const Role = require('../models/Role');
+const BloodStock = require('../models/BloodStock');
+const bcrypt = require('bcryptjs');
 const BloodBank = require('../models/BloodBank');
 const Appointment = require('../models/Appointment');
 const UrgentRequest = require('../models/UrgentRequest');
@@ -79,6 +82,36 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.createUser = async (req, res) => {
+  try {
+    const { name, email, phone, bloodGroup, password, role, isEligible } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password || Math.random().toString(36).slice(2), 10);
+    const user = new User({
+      name,
+      email,
+      phone,
+      bloodGroup,
+      password: hashedPassword,
+      role: role === 'admin' ? 'admin' : 'donor',
+      isEligible: isEligible !== undefined ? isEligible : true,
+    });
+    await user.save();
+
+    res.status(201).json({ message: 'Donor created successfully', user: { id: user._id, name: user.name, email: user.email, phone: user.phone, bloodGroup: user.bloodGroup, role: user.role } });
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: Object.values(error.errors).map((e) => e.message).join(', ') });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.getUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -126,6 +159,143 @@ exports.deleteUser = async (req, res) => {
       Feedback.deleteMany({ userId: user._id }),
     ]);
     res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getAdmins = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const filter = { role: 'admin' };
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { adminRole: { $regex: search, $options: 'i' } },
+      ];
+    }
+    const admins = await User.find(filter)
+      .select('-password')
+      .sort({ createdAt: -1 });
+    res.json(admins);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createAdmin = async (req, res) => {
+  try {
+    const { name, email, phone, password, adminRole } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ name, email, phone, password: hashedPassword, role: 'admin', adminRole: adminRole || '' });
+    await user.save();
+
+    res.status(201).json({ message: 'Admin created successfully', user: { id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, adminRole: user.adminRole } });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { name, email, phone, adminRole, password } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (email !== undefined) update.email = email;
+    if (phone !== undefined) update.phone = phone;
+    if (adminRole !== undefined) update.adminRole = adminRole;
+    if (password) update.password = await bcrypt.hash(password, 10);
+
+    const admin = await User.findOneAndUpdate({ _id: req.params.id, role: 'admin' }, update, { new: true, runValidators: true }).select('-password');
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    res.json(admin);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteAdmin = async (req, res) => {
+  try {
+    const admin = await User.findOneAndDelete({ _id: req.params.id, role: 'admin' });
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    res.json({ message: 'Admin deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getRoles = async (req, res) => {
+  try {
+    const roles = await Role.find().sort({ createdAt: -1 });
+    res.json(roles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.createRole = async (req, res) => {
+  try {
+    const { name, description, permissions } = req.body;
+    const role = new Role({
+      name,
+      description: description || '',
+      permissions: Array.isArray(permissions) ? permissions : [],
+    });
+    await role.save();
+    res.status(201).json(role);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Role with this name already exists' });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateRole = async (req, res) => {
+  try {
+    const { name, description, permissions } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (description !== undefined) update.description = description;
+    if (permissions !== undefined) update.permissions = permissions;
+
+    const role = await Role.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+    res.json(role);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Role with this name already exists' });
+    }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteRole = async (req, res) => {
+  try {
+    const role = await Role.findByIdAndDelete(req.params.id);
+    if (!role) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+    await User.updateMany({ adminRole: role.name }, { $unset: { adminRole: '' } });
+    res.json({ message: 'Role deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -237,6 +407,43 @@ exports.deleteFeedback = async (req, res) => {
       return res.status(404).json({ message: 'Feedback not found' });
     }
     res.json({ message: 'Feedback deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+exports.getBloodStock = async (req, res) => {
+  try {
+    const existing = await BloodStock.find().sort({ bloodGroup: 1 });
+    const byGroup = {};
+    existing.forEach((s) => { byGroup[s.bloodGroup] = s; });
+
+    const missing = BLOOD_GROUPS.filter((g) => !byGroup[g]);
+    if (missing.length > 0) {
+      const created = await BloodStock.insertMany(missing.map((g) => ({ bloodGroup: g, units: 0 })));
+      created.forEach((s) => { byGroup[s.bloodGroup] = s; });
+    }
+
+    res.json(BLOOD_GROUPS.map((g) => byGroup[g]));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateBloodStock = async (req, res) => {
+  try {
+    const { units } = req.body;
+    const parsed = Math.max(0, Math.round(Number(units) || 0));
+
+    const stock = await BloodStock.findOneAndUpdate(
+      { bloodGroup: req.params.bloodGroup },
+      { units: parsed, updatedBy: req.user._id },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+
+    res.json(stock);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

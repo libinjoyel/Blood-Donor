@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
@@ -19,87 +19,67 @@ import Notifications from './pages/Notifications';
 import DonationHistory from './pages/DonationHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
+import AdminAdmins from './pages/AdminAdmins';
 import AdminAppointments from './pages/AdminAppointments';
 import AdminRequests from './pages/AdminRequests';
 import AdminFeedback from './pages/AdminFeedback';
 import AdminBloodBanks from './pages/AdminBloodBanks';
 import './App.css';
 
-function App() {
+const AUTH_ROUTES = ['/login', '/register'];
+
+function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="app-layout">
+    <div className="flex flex-col min-h-screen bg-slate-50/50">
       <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-      <div className="app-body">
+      <div className="flex flex-1">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="main-content">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
+              <ProtectedRoute><Dashboard /></ProtectedRoute>
             } />
             <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
+              <ProtectedRoute><Profile /></ProtectedRoute>
             } />
             <Route path="/blood-banks" element={<BloodBanks />} />
             <Route path="/blood-banks/:id" element={<BloodBankDetails />} />
             <Route path="/book-appointment" element={
-              <ProtectedRoute>
-                <BookAppointment />
-              </ProtectedRoute>
+              <ProtectedRoute><BookAppointment /></ProtectedRoute>
             } />
             <Route path="/appointments" element={
-              <ProtectedRoute>
-                <AppointmentHistory />
-              </ProtectedRoute>
+              <ProtectedRoute><AppointmentHistory /></ProtectedRoute>
             } />
             <Route path="/urgent-requests" element={<UrgentRequests />} />
             <Route path="/notifications" element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
+              <ProtectedRoute><Notifications /></ProtectedRoute>
             } />
             <Route path="/donation-history" element={
-              <ProtectedRoute>
-                <DonationHistory />
-              </ProtectedRoute>
+              <ProtectedRoute><DonationHistory /></ProtectedRoute>
             } />
             <Route path="/admin" element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
+              <AdminRoute><AdminDashboard /></AdminRoute>
             } />
             <Route path="/admin/users" element={
-              <AdminRoute>
-                <AdminUsers />
-              </AdminRoute>
+              <AdminRoute><AdminUsers /></AdminRoute>
+            } />
+            <Route path="/admin/admins" element={
+              <AdminRoute><AdminAdmins /></AdminRoute>
             } />
             <Route path="/admin/appointments" element={
-              <AdminRoute>
-                <AdminAppointments />
-              </AdminRoute>
+              <AdminRoute><AdminAppointments /></AdminRoute>
             } />
             <Route path="/admin/requests" element={
-              <AdminRoute>
-                <AdminRequests />
-              </AdminRoute>
+              <AdminRoute><AdminRequests /></AdminRoute>
             } />
             <Route path="/admin/feedback" element={
-              <AdminRoute>
-                <AdminFeedback />
-              </AdminRoute>
+              <AdminRoute><AdminFeedback /></AdminRoute>
             } />
             <Route path="/admin/blood-banks" element={
-              <AdminRoute>
-                <AdminBloodBanks />
-              </AdminRoute>
+              <AdminRoute><AdminBloodBanks /></AdminRoute>
             } />
           </Routes>
         </main>
@@ -107,6 +87,22 @@ function App() {
       <Footer />
     </div>
   );
+}
+
+function App() {
+  const location = useLocation();
+  const isAuth = AUTH_ROUTES.includes(location.pathname);
+
+  if (isAuth) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    );
+  }
+
+  return <AppLayout />;
 }
 
 export default App;

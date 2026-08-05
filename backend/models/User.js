@@ -20,8 +20,10 @@ const userSchema = new mongoose.Schema({
   },
   bloodGroup: {
     type: String,
-    required: [true, 'Blood group is required'],
     enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+    required: function () {
+      return this.role === 'donor';
+    },
   },
   password: {
     type: String,
@@ -32,6 +34,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['donor', 'admin'],
     default: 'donor',
+  },
+  adminRole: {
+    type: String,
+    trim: true,
+    default: '',
   },
   address: {
     type: String,
