@@ -132,10 +132,10 @@ exports.getUnit = async (req, res) => {
 
 exports.createUnit = async (req, res) => {
   try {
-    const { donor, bloodGroup, component, donationDate, expiryDate, storageLocation, remarks } = req.body;
+    const { bloodGroup, component, donationDate, expiryDate, storageLocation, remarks } = req.body;
 
-    if (!donor || !bloodGroup || !component || !donationDate) {
-      return res.status(400).json({ message: 'Donor, blood group, component and donation date are required' });
+    if (!bloodGroup || !component || !donationDate) {
+      return res.status(400).json({ message: 'Blood group, component and donation date are required' });
     }
 
     const donation = donationDate ? new Date(donationDate) : new Date();
@@ -144,7 +144,6 @@ exports.createUnit = async (req, res) => {
       : addDays(donation, COMPONENT_SHELF_LIFE_DAYS[component] || 35);
 
     const unit = new BloodUnit({
-      donor,
       bloodGroup,
       component,
       donationDate: donation,
@@ -155,8 +154,7 @@ exports.createUnit = async (req, res) => {
     await unit.save();
     await logTransaction({ bloodUnit: unit, action: 'Created', user: req.user, notes: `Unit created (${component})` });
 
-    const populated = await BloodUnit.findById(unit._id).populate('donor', 'name email phone bloodGroup');
-    res.status(201).json(populated);
+    res.status(201).json(unit);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

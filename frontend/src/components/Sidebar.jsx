@@ -1,24 +1,24 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
-  Droplets, LayoutDashboard, CalendarClock, CalendarPlus,
-  Building2, User,   LogOut, X, Heart,
+  LayoutDashboard, CalendarClock, CalendarPlus,
+  Building2, User, LogOut, X, Heart,
   Bell, Shield, Boxes,
 } from 'lucide-react';
+import ProfileCard from './ProfileCard';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/donation-history', label: 'Donation History', icon: CalendarClock },
   { to: '/book-appointment', label: 'Schedule Appointment', icon: CalendarPlus },
   { to: '/blood-banks', label: 'Blood Banks', icon: Building2 },
-  { to: '/profile', label: 'Profile & Eligibility', icon: User },
   { to: '/notifications', label: 'Notifications', icon: Bell },
 ];
 
 const ADMIN_ITEMS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/inventory', label: 'Blood Inventory', icon: Boxes },
-  { to: '/admin/blood-banks', label: 'Blood Banks', icon: Building2 },
   { to: '/admin/users', label: 'Donor Database', icon: User },
   { to: '/admin/admins', label: 'Administrators', icon: Shield },
   { to: '/admin/appointments', label: 'Appointment Requests', icon: CalendarClock },
@@ -29,6 +29,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -53,8 +54,8 @@ export default function Sidebar({ isOpen, onClose }) {
       )}
       <aside
         className={`
-          fixed lg:sticky top-0 left-0 z-50
-          h-screen lg:min-h-0 lg:self-stretch
+          fixed lg:sticky top-0 lg:top-14 left-0 z-50
+          h-screen lg:h-[calc(100vh-3.5rem)]
           w-[260px] bg-slate-900 text-white
           flex flex-col
           transition-transform duration-300 ease-in-out
@@ -63,17 +64,11 @@ export default function Sidebar({ isOpen, onClose }) {
         `}
         aria-label="Sidebar navigation"
       >
-        {/* Brand */}
-        <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center shadow-md">
-              <Droplets size={18} className="text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">LifeFlow</span>
-          </div>
+        {/* Mobile close */}
+        <div className="lg:hidden flex items-center justify-end px-3 pt-3 flex-shrink-0">
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close sidebar"
           >
             <X size={18} />
@@ -81,7 +76,7 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5 scrollbar-thin scrollbar-thumb-white/10">
+        <nav className="flex-1 overflow-y-auto pt-4 pb-3 px-3 space-y-0.5 scrollbar-thin scrollbar-thumb-white/10">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -130,14 +125,20 @@ export default function Sidebar({ isOpen, onClose }) {
 
         {/* Footer with user info + logout */}
         <div className="border-t border-white/10 p-4 flex-shrink-0 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-              {getInitials(user?.name)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-slate-400 truncate capitalize">{user?.role || 'donor'}</p>
-            </div>
+          <div className="relative">
+            <button onClick={() => setProfileOpen(!profileOpen)}
+              className="w-full flex items-center gap-3 text-left rounded-lg hover:bg-white/5 px-1.5 py-1.5 transition-colors">
+              <div className="w-9 h-9 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                {getInitials(user?.name)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-slate-400 truncate capitalize">{user?.role || 'donor'}</p>
+              </div>
+            </button>
+            {profileOpen && (
+              <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute bottom-full left-0 mb-2" />
+            )}
           </div>
           <button
             onClick={handleLogout}

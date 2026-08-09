@@ -1,16 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, Bell, ChevronDown, LogOut, Settings,
+  Search, Plus, Bell, ChevronDown,
   Droplets, Calendar, AlertTriangle, CheckCircle, X,
   Building2, Phone, Clock, ChevronLeft, ChevronRight,
-  Hospital, Loader2, User, ArrowUpDown,
-  BadgeCheck, Ban, FlaskConical, Edit3, Lock, Timer,
-  Archive, Package, BarChart3, CheckCircle2,
+  Hospital, Loader2, ArrowUpDown,
+  BadgeCheck, Ban, FlaskConical, Lock, Timer,
+  Archive, Package, CheckCircle2,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import Toast from '../components/Toast';
+import ProfileCard from '../components/ProfileCard';
 import { useToast } from '../hooks/useToast';
 
 const ALL_BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -108,31 +109,7 @@ function StatCard({ title, value, icon, accent, sub }) {
   );
 }
 
-function MiniBarChart({ data, labelKey = (d) => d.label, valueKey = 'count', color = 'bg-rose-500' }) {
-  const values = (data || []).map((d) => d[valueKey] || 0);
-  const max = Math.max(1, ...values);
-  return (
-    <div className="flex items-end gap-1.5 h-32">
-      {(data || []).map((d, i) => {
-        const pct = Math.max(3, Math.round(((d[valueKey] || 0) / max) * 100));
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-            <span className="text-[9px] font-medium text-slate-500">{d[valueKey] || 0}</span>
-            <div className="w-full bg-slate-100 rounded-t flex items-end justify-center">
-              <div className={`w-full rounded-t ${color}`} style={{ height: `${pct}%`, maxHeight: 96 }} />
-            </div>
-            <span className="text-[9px] text-slate-400 truncate w-full text-center">{labelKey(d)}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function BloodStockCard({ type, info, stats, stock, onUpdate }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(stock?.units ?? 0);
-  const units = stock?.units ?? 0;
+function BloodStockCard({ type, info, stats }) {
   const available = stats?.available ?? 0;
   const critical = stats?.belowThreshold || available < CRITICAL_THRESHOLD_UNITS;
 
@@ -152,57 +129,24 @@ function BloodStockCard({ type, info, stats, stock, onUpdate }) {
         {critical && <AlertTriangle size={16} className="text-rose-500" />}
       </div>
 
-      {editing ? (
-        <div className="mb-2">
-          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Manual Stock Count</p>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="0"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-            />
-            <button
-              onClick={() => { onUpdate(type, value); setEditing(false); }}
-              className="px-2.5 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-            >
-              Save
-            </button>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-3">
+        {detailRows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-500">{r.label}</span>
+            <span className={`text-xs font-bold ${r.cls}`}>{r.value}</span>
           </div>
-          <button onClick={() => { setEditing(false); setValue(units); }} className="mt-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors">
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-3">
-            {detailRows.map((r) => (
-              <div key={r.label} className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500">{r.label}</span>
-                <span className={`text-xs font-bold ${r.cls}`}>{r.value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2">
-            <span className="text-[10px] text-slate-500">Manual: <span className="font-semibold text-slate-700">{units}</span></span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => { setValue(units); setEditing(true); }}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-600 bg-white/80 border border-slate-200 rounded-lg hover:text-rose-600 hover:border-rose-300 transition-colors"
-              >
-                <Edit3 size={10} /> Update
-              </button>
-              <Link
-                to={`/admin/inventory?bloodGroup=${encodeURIComponent(type)}`}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-600 bg-white/80 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
-              >
-                View Units
-              </Link>
-            </div>
-          </div>
-        </>
-      )}
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2">
+        <span className="text-[10px] text-slate-500">Tracked in inventory</span>
+        <Link
+          to={`/admin/inventory?bloodGroup=${encodeURIComponent(type)}`}
+          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-600 bg-white/80 border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
+        >
+          View Units
+        </Link>
+      </div>
 
       {critical && (
         <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-rose-600 bg-rose-100 rounded px-1.5 py-0.5">
@@ -269,10 +213,9 @@ function StatusBadge({ status, type }) {
 export default function AdminDashboard() {
   const { user: authUser, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast, showToast, dismissToast } = useToast();
+  const { toast, dismissToast } = useToast();
 
   const [stats, setStats] = useState(null);
-  const [stock, setStock] = useState({});
   const [overview, setOverview] = useState(null);
   const [allAppointments, setAllAppointments] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
@@ -284,20 +227,17 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    let interval = null;
     const fetchAll = async () => {
       try {
-        const [statsRes, aptsRes, reqsRes, stockRes, overviewRes] = await Promise.all([
+        const [statsRes, aptsRes, reqsRes, overviewRes] = await Promise.all([
           api.get('/admin/stats'),
           api.get('/admin/appointments'),
           api.get('/admin/urgent-requests'),
-          api.get('/admin/blood-stock'),
           api.get('/inventory/overview'),
         ]);
         if (cancelled) return;
         setStats(statsRes.data.stats);
-        const stockMap = {};
-        (stockRes.data || []).forEach((s) => { stockMap[s.bloodGroup] = s; });
-        setStock(stockMap);
         setOverview(overviewRes.data || null);
         setAllAppointments(aptsRes.data || []);
         setAllRequests(reqsRes.data || []);
@@ -308,7 +248,8 @@ export default function AdminDashboard() {
       } finally { if (!cancelled) setLoading(false); }
     };
     fetchAll();
-    return () => { cancelled = true; };
+    interval = setInterval(fetchAll, 30000);
+    return () => { cancelled = true; if (interval) clearInterval(interval); };
   }, [logout, navigate]);
 
   const handleSearch = (e) => {
@@ -316,10 +257,7 @@ export default function AdminDashboard() {
     if (searchQuery.trim()) navigate(`/admin/users?search=${encodeURIComponent(searchQuery.trim())}`);
   };
 
-  const criticalShortages = useMemo(() => {
-    if (overview?.stats?.bloodGroupsBelowThreshold) return overview.stats.bloodGroupsBelowThreshold.length;
-    return ALL_BLOOD_TYPES.filter((bt) => (stock[bt]?.units ?? 0) < CRITICAL_THRESHOLD_UNITS).length;
-  }, [overview, stock]);
+  const criticalShortages = overview?.stats?.bloodGroupsBelowThreshold?.length ?? 0;
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayAppts = useMemo(() => {
@@ -357,20 +295,6 @@ export default function AdminDashboard() {
       setError('Failed to update request');
     }
   };
-
-  const handleUpdateStock = async (bloodGroup, units) => {
-    try {
-      const res = await api.put(`/admin/blood-stock/${encodeURIComponent(bloodGroup)}`, { units });
-      setStock((prev) => ({ ...prev, [bloodGroup]: res.data }));
-      showToast(`Manual stock for ${bloodGroup} updated`);
-    } catch {
-      showToast('Failed to update stock', 'error');
-    }
-  };
-
-  const totalUnits = useMemo(() => {
-    return ALL_BLOOD_TYPES.reduce((sum, bt) => sum + (stock[bt]?.units ?? 0), 0);
-  }, [stock]);
 
   if (loading) {
     return (
@@ -420,7 +344,6 @@ export default function AdminDashboard() {
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              onBlur={() => setTimeout(() => setProfileOpen(false), 150)}
               className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition-all duration-200"
             >
               <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">
@@ -429,23 +352,7 @@ export default function AdminDashboard() {
               <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
             </button>
             {profileOpen && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-fade-in">
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <p className="text-sm font-semibold text-slate-900">{adminName}</p>
-                  <p className="text-xs text-slate-400">Administrator</p>
-                </div>
-                <button onClick={() => { navigate('/profile'); setProfileOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
-                  <User size={15} /> Profile
-                </button>
-                <button onClick={() => { navigate('/settings'); setProfileOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
-                  <Settings size={15} /> Settings
-                </button>
-                <div className="border-t border-slate-100 mt-1 pt-1">
-                  <button onClick={() => { logout(); navigate('/login'); }} className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors">
-                    <LogOut size={15} /> Logout
-                  </button>
-                </div>
-              </div>
+              <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute right-0 top-full mt-2" />
             )}
           </div>
         </div>
@@ -460,7 +367,7 @@ export default function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Available Units" value={overview?.stats?.totalAvailable ?? totalUnits} icon={<Droplets size={20} className="text-rose-500" />} accent="bg-rose-50 text-rose-500" sub="Across all blood types" />
+        <StatCard title="Total Available Units" value={overview?.stats?.totalAvailable ?? 0} icon={<Droplets size={20} className="text-rose-500" />} accent="bg-rose-50 text-rose-500" sub="Across all blood types" />
         <StatCard title="Pending Requests" value={stats?.totalRequests || 0} icon={<AlertTriangle size={20} className="text-amber-500" />} accent="bg-amber-50 text-amber-500" sub={`${urgentRequests.length} urgent`} />
         <StatCard title="Appointments Today" value={todayAppts.length} icon={<Calendar size={20} className="text-blue-500" />} accent="bg-blue-50 text-blue-500" sub={todayAppts.length > 0 ? `${todayAppts.length} scheduled` : 'No appointments today'} />
         <StatCard title="Critical Shortage Alert" value={criticalShortages} icon={<FlaskConical size={20} />} accent={criticalShortages > 0 ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'} sub={`${criticalShortages} blood type${criticalShortages !== 1 ? 's' : ''} below ${CRITICAL_THRESHOLD_UNITS} units`} />
@@ -498,37 +405,10 @@ export default function AdminDashboard() {
               type={bt}
               info={BLOOD_TYPE_INFO[bt]}
               stats={overview?.byGroup?.[bt]}
-              stock={stock[bt]}
-              onUpdate={handleUpdateStock}
             />
           ))}
         </div>
-        <p className="text-[11px] text-slate-400 mt-2">Available, Reserved, Issued Today and Expiring Soon are tracked from registered blood units. Manual stock is the physically verified count.</p>
-      </section>
-
-      <section className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart3 size={18} className="text-rose-500" />
-          <h2 className="text-base font-semibold text-slate-900">Blood Analytics</h2>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Blood Group Distribution</h3>
-            <MiniBarChart data={overview?.charts?.bloodGroupDistribution} labelKey={(d) => d.bloodGroup} color="bg-rose-500" />
-          </div>
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Monthly Donations</h3>
-            <MiniBarChart data={overview?.charts?.monthlyDonations} color="bg-emerald-500" />
-          </div>
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Monthly Blood Usage</h3>
-            <MiniBarChart data={overview?.charts?.monthlyUsage} color="bg-blue-500" />
-          </div>
-          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Expiry Trend</h3>
-            <MiniBarChart data={overview?.charts?.expiryTrend} color="bg-amber-500" />
-          </div>
-        </div>
+        <p className="text-[11px] text-slate-400 mt-2">Stock levels are tracked from blood units added in the Blood Inventory. Auto-refreshes every 30 seconds.</p>
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

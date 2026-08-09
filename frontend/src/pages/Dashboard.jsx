@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Droplet, Heart, Calendar, Bell, ChevronRight, MapPin, Clock,
-  Award, Hospital, CheckCircle, Gift, Building2, Syringe, AlertCircle,
-  Loader2, Activity,
+  Droplet, Heart, Calendar, Bell, ChevronRight, Clock,
+  Award, CheckCircle, Building2, Syringe, AlertCircle,
+  Loader2, Timer, CalendarClock, RefreshCw,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import ProfileCard from '../components/ProfileCard';
 
 const BLOOD_TYPE_MAP = {
   'A+': 'A+', 'A-': 'A-', 'B+': 'B+', 'B-': 'B-',
@@ -43,6 +44,55 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  try {
+    return new Date(`2000-01-01T${timeStr}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } catch {
+    return timeStr;
+  }
+}
+
+function CountdownBox({ value, label }) {
+  return (
+    <div className="text-center bg-slate-50 rounded-xl border border-slate-100 py-3">
+      <p className="text-2xl font-extrabold text-slate-900 leading-none tabular-nums">{String(value).padStart(2, '0')}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-1">{label}</p>
+    </div>
+  );
+}
+
+function useCountUp(target, duration = 1200) {
+  const [value, setValue] = useState(0);
+  const prevRef = useRef(0);
+
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = Number(target) || 0;
+    prevRef.current = to;
+    if (from === to) return;
+    let raf;
+    const start = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(from + (to - from) * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return value;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 function getEligibilityInfo(nextEligibleDate) {
@@ -84,29 +134,6 @@ function getMilestoneProgress(count) {
   return { current: count, next: MILESTONES[MILESTONES.length - 1], progress: 100, label: `Platinum Donor (${count} donations)` };
 }
 
-function StatusBadge({ status }) {
-  const styles = {
-    completed: 'bg-emerald-50 text-emerald-600',
-    pending: 'bg-amber-50 text-amber-600',
-    cancelled: 'bg-rose-50 text-rose-600',
-    scheduled: 'bg-blue-50 text-blue-600',
-  };
-  return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status] || styles.pending}`}>
-      {status}
-    </span>
-  );
-}
-
-function UrgentBloodBadge({ bloodGroup }) {
-  const color = BLOOD_TYPE_COLORS[bloodGroup] || 'bg-slate-100 text-slate-700 border-slate-200';
-  return (
-    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-xs font-bold border ${color}`}>
-      {bloodGroup}
-    </span>
-  );
-}
-
 function StatCard({ label, value, icon, accent, sub }) {
   const Icon = icon;
   const gradMap = {
@@ -144,11 +171,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [dashboard, setDashboard] = useState(null);
-  const [donations, setDonations] = useState([]);
-  const [urgentRequests, setUrgentRequests] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [now, setNow] = useState(() => new Date());
 
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedCenter, setSelectedCenter] = useState('');
@@ -158,19 +187,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    let interval = null;
     const fetchData = async () => {
       try {
-        const [dashRes, donationsRes, urgentRes, notifRes] = await Promise.all([
+        const [dashRes, notifRes, apptsRes] = await Promise.all([
           api.get('/dashboard'),
-          api.get('/donations').catch(() => ({ data: { donations: [] } })),
-          api.get('/urgent-requests?status=urgent').catch(() => ({ data: [] })),
           api.get('/notifications/unread-count').catch(() => ({ data: { count: 0 } })),
+          api.get('/appointments').catch(() => ({ data: [] })),
         ]);
         if (cancelled) return;
         setDashboard(dashRes.data);
-        setDonations(donationsRes.data.donations || []);
-        setUrgentRequests(Array.isArray(urgentRes.data) ? urgentRes.data : (urgentRes.data.requests || []));
         setUnreadCount(notifRes.data.count || 0);
+        setAppointments(Array.isArray(apptsRes.data) ? apptsRes.data : []);
+        setLastUpdated(new Date());
       } catch (err) {
         if (cancelled) return;
         if (err.response?.status === 401) { logout(); navigate('/login'); return; }
@@ -180,8 +209,14 @@ export default function Dashboard() {
       }
     };
     fetchData();
-    return () => { cancelled = true; };
+    interval = setInterval(fetchData, 30000);
+    return () => { cancelled = true; if (interval) clearInterval(interval); };
   }, [logout, navigate]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const user = dashboard?.user || authUser;
   const stats = dashboard?.stats || {};
@@ -197,6 +232,28 @@ export default function Dashboard() {
   const milestone = getMilestoneProgress(donationCount);
   const livesImpacted = donationCount * 3;
 
+  const animatedDonations = useCountUp(donationCount);
+  const animatedLives = useCountUp(livesImpacted);
+
+  const greeting = getGreeting();
+  const nowMs = now.getTime();
+
+  const upcoming = useMemo(() => {
+    return appointments
+      .filter((a) => a.status === 'scheduled')
+      .map((a) => {
+        const d = new Date(a.date).toISOString().split('T')[0];
+        return { ...a, dt: new Date(`${d}T${a.time || '09:00'}`) };
+      })
+      .filter((a) => a.dt.getTime() > nowMs)
+      .sort((x, y) => x.dt - y.dt)[0] || null;
+  }, [appointments, nowMs]);
+
+  const diffMs = upcoming ? Math.max(0, upcoming.dt.getTime() - nowMs) : 0;
+  const countdownDays = Math.floor(diffMs / 86400000);
+  const countdownHours = Math.floor((diffMs % 86400000) / 3600000);
+  const countdownMins = Math.floor((diffMs % 3600000) / 60000);
+
   const bloodBadgeColor = BLOOD_TYPE_COLORS[bloodGroup] || 'bg-rose-100 text-rose-700 border-rose-200';
   const initials = getInitials(user?.name);
 
@@ -204,7 +261,7 @@ export default function Dashboard() {
     if (!selectedCenter || !selectedDate || !selectedTime) return;
     setBookingLoading(true);
     try {
-      await api.post('/appointments', { bloodBankId: selectedCenter, date: selectedDate, timeSlot: selectedTime });
+      await api.post('/appointments', { bloodBankId: selectedCenter, date: selectedDate, time: selectedTime });
       setBookingStep(4);
     } catch (err) {
       setError(err.response?.data?.message || 'Booking failed');
@@ -236,9 +293,24 @@ export default function Dashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
-                Welcome back, {user?.name?.split(' ')[0] || 'Donor'}
+                {greeting}, {user?.name?.split(' ')[0] || 'Donor'} <span className="align-middle">👋</span>
               </h1>
-              <p className="text-sm text-slate-500 mt-1">Here&apos;s your donation overview for today.</p>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                Here&apos;s your donation overview for today.
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full ml-1">
+                  <span className="relative flex w-1.5 h-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500" />
+                  </span>
+                  Live
+                </span>
+                {lastUpdated && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-normal" title="Auto-refreshes every 30s">
+                    <RefreshCw size={10} className="inline" />
+                    Updated {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -260,7 +332,15 @@ export default function Dashboard() {
                 </span>
               )}
             </Link>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white flex items-center justify-center text-sm font-bold shadow-sm">{initials}</div>
+            <div className="relative">
+              <button onClick={() => setProfileOpen(!profileOpen)}
+                className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 text-white flex items-center justify-center text-sm font-bold shadow-sm hover:opacity-90 hover:scale-105 transition-all duration-200">
+                {initials}
+              </button>
+              {profileOpen && (
+                <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute right-0 top-full mt-2" />
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -275,15 +355,14 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 lg:gap-6 mb-10">
-        <StatCard label="Total Donations" value={donationCount} icon={Droplet} accent="bg-rose-50" sub="Lifetime donations" />
-        <StatCard label="Lives Impacted" value={livesImpacted} icon={Heart} accent="bg-emerald-50" sub="Each donation saves up to 3 lives" />
+        <StatCard label="Total Donations" value={animatedDonations} icon={Droplet} accent="bg-rose-50" sub="Lifetime donations" />
+        <StatCard label="Lives Impacted" value={animatedLives} icon={Heart} accent="bg-emerald-50" sub="Each donation saves up to 3 lives" />
         <StatCard label="Next Eligible" value={nextEligibleDate ? formatDate(nextEligibleDate) : 'Now'} icon={Calendar} accent="bg-blue-50" sub={isEligible ? 'You are eligible to donate' : 'On hold'} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8">
-        <div className="lg:col-span-2 space-y-6 xl:space-y-8">
-          <div className="bg-white rounded-[18px] shadow-sm border border-slate-200/70 overflow-hidden hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.04)] transition-all duration-300">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/50 to-transparent">
+      <div className="grid grid-cols-1 gap-6 xl:gap-8">
+        <div className="bg-white rounded-[18px] shadow-sm border border-slate-200/70 overflow-hidden hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.04)] transition-all duration-300">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/50 to-transparent">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
                   <Calendar size={16} className="text-rose-600" />
@@ -351,116 +430,59 @@ export default function Dashboard() {
             )}
           </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 xl:gap-8">
           <div className="bg-white rounded-[18px] shadow-sm border border-slate-200/70 overflow-hidden hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.04)] transition-all duration-300">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50/50 to-transparent">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
-                  <Activity size={16} className="text-rose-600" />
-                </div>
-                <h2 className="text-sm font-semibold text-slate-900">Recent Donation Activity</h2>
-              </div>
-              <Link to="/donation-history" className="text-xs font-medium text-rose-600 hover:text-rose-700 flex items-center gap-0.5 transition-colors">
-                View all <ChevronRight size={14} />
-              </Link>
-            </div>
-
-            {donations.length === 0 ? (
-              <div className="flex flex-col items-center py-14 sm:py-16 px-6">
-                <div className="w-20 h-20 rounded-2xl bg-rose-50 flex items-center justify-center mb-5">
-                  <Gift size={36} className="text-rose-300" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">No Donations Yet</h3>
-                <p className="text-sm text-slate-500 mt-1.5 mb-6 max-w-sm text-center leading-relaxed">
-                  Start saving lives by scheduling your first donation today. Every drop counts.
-                </p>
-                <Link to="/book-appointment" className="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/25 transition-all duration-200">
-                  <Calendar size={16} /> Schedule Your First Donation
-                </Link>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100">
-                      <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.08em]">Date</th>
-                      <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.08em]">Location</th>
-                      <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.08em]">Units</th>
-                      <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.08em]">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {donations.slice(0, 5).map((d) => (
-                      <tr key={d._id} className="hover:bg-slate-50/80 transition-colors duration-150">
-                        <td className="px-6 py-3.5 text-slate-700 whitespace-nowrap font-medium">{formatDate(d.donationDate)}</td>
-                        <td className="px-6 py-3.5 text-slate-600">
-                          <span className="flex items-center gap-1.5">
-                            <Building2 size={14} className="text-slate-300 flex-shrink-0" />
-                            <span className="truncate">{d.bloodBankId?.name || 'Blood Bank'}</span>
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5">
-                          <span className="font-bold text-slate-900">{d.units || 1}</span>
-                          <span className="text-xs text-slate-400 ml-0.5">unit{(d.units || 1) > 1 ? 's' : ''}</span>
-                        </td>
-                        <td className="px-6 py-3.5"><StatusBadge status={(d.status || 'completed').toLowerCase()} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-6 xl:space-y-8">
-          <div className="bg-white rounded-[18px] shadow-sm border border-slate-200/70 overflow-hidden hover:shadow-[0_8px_25px_-4px_rgba(0,0,0,0.04)] transition-all duration-300">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5 bg-gradient-to-r from-slate-50/50 to-transparent">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2.5 bg-gradient-to-r from-rose-50/50 to-transparent">
               <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
-                <Hospital size={16} className="text-rose-600" />
+                <CalendarClock size={16} className="text-rose-600" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-900">Urgent Demands</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Upcoming Appointment</h2>
+              {upcoming && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                  <span className="relative flex w-1.5 h-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full w-1.5 h-1.5 bg-emerald-500" />
+                  </span>
+                  Live
+                </span>
+              )}
             </div>
 
-            {urgentRequests.length === 0 ? (
-              <div className="flex flex-col items-center py-10 px-6">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-                  <CheckCircle size={30} className="text-emerald-400" />
+            {upcoming ? (
+              <div className="p-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
+                    <Building2 size={18} className="text-rose-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{upcoming.bloodBankId?.name || 'Blood Bank'}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {formatDate(upcoming.date)} at {formatTime(upcoming.time)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm font-bold text-slate-900">All Clear</p>
-                <p className="text-xs text-slate-500 mt-1 text-center">No urgent blood requests at this time.</p>
+
+                <div className="mt-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
+                    <Timer size={12} /> Countdown
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <CountdownBox value={countdownDays} label="Days" />
+                    <CountdownBox value={countdownHours} label="Hours" />
+                    <CountdownBox value={countdownMins} label="Mins" />
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="divide-y divide-slate-50">
-                {urgentRequests.slice(0, 4).map((req) => (
-                  <div key={req._id} className="px-6 py-4 hover:bg-rose-50/20 transition-colors duration-150">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{req.hospital}</p>
-                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-                          <MapPin size={11} className="text-slate-300" /> {req.city || 'Local'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <UrgentBloodBadge bloodGroup={req.bloodGroup} />
-                        <div className="text-right">
-                          <span className="text-sm font-bold text-slate-900">{req.units || 1}</span>
-                          <span className="text-[10px] text-slate-400 ml-0.5">unit{(req.units || 1) > 1 ? 's' : ''}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-50 text-rose-600">
-                        <AlertCircle size={10} />
-                        Urgent
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {urgentRequests.length > 4 && (
-                  <Link to="/urgent-requests" className="block py-3.5 text-center text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-slate-50 transition-colors">
-                    View all {urgentRequests.length} requests <ChevronRight size={12} className="inline" />
-                  </Link>
-                )}
+              <div className="flex flex-col items-center py-10 px-6 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
+                  <CalendarClock size={30} className="text-rose-300" />
+                </div>
+                <p className="text-sm font-bold text-slate-900">No Upcoming Appointment</p>
+                <p className="text-xs text-slate-500 mt-1 mb-5">Book your next donation and see a live countdown here.</p>
+                <Link to="/book-appointment" className="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-600 text-white text-sm font-semibold rounded-xl hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/25 transition-all duration-200">
+                  <Calendar size={16} /> Book Now
+                </Link>
               </div>
             )}
           </div>
@@ -530,7 +552,7 @@ function BookingCenterStep({ value, onChange, onNext }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/blood-banks')
+    api.get('/blood-bank')
       .then((res) => setCenters(Array.isArray(res.data) ? res.data : (res.data.banks || [])))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -546,7 +568,7 @@ function BookingCenterStep({ value, onChange, onNext }) {
       ) : centers.length === 0 ? (
         <p className="text-sm text-slate-400 py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">No blood banks available in your area.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
           {centers.map((c) => (
             <button key={c._id} type="button" onClick={() => onChange(c._id)}
               className={`text-left p-4 rounded-xl border-2 transition-all duration-200 ${
@@ -608,7 +630,7 @@ function BookingDateTimeStep({ date, time, onDateChange, onTimeChange, onBack, o
             <Calendar size={14} /> Please select a date first.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {timeSlots.map((slot) => (
               <button key={slot} type="button" onClick={() => onTimeChange(slot)}
                 className={`px-2.5 py-2.5 text-xs sm:text-sm font-medium rounded-xl border transition-all duration-200 ${
@@ -643,7 +665,7 @@ function BookingConfirmStep({ centerId, date, time, onBack, onConfirm, loading }
   useEffect(() => {
     if (!centerId) return;
     let cancelled = false;
-    api.get(`/blood-banks/${centerId}`)
+    api.get(`/blood-bank/${centerId}`)
       .then((res) => { if (!cancelled) setCenter(res.data); })
       .catch(() => {})
     return () => { cancelled = true; };

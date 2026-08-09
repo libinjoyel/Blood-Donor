@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import Home from './pages/Home';
@@ -11,7 +9,6 @@ import Register from './pages/Register';
 import BloodBanks from './pages/BloodBanks';
 import BloodBankDetails from './pages/BloodBankDetails';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
 import BookAppointment from './pages/BookAppointment';
 import AppointmentHistory from './pages/AppointmentHistory';
 import UrgentRequests from './pages/UrgentRequests';
@@ -23,28 +20,22 @@ import AdminAdmins from './pages/AdminAdmins';
 import AdminAppointments from './pages/AdminAppointments';
 import AdminRequests from './pages/AdminRequests';
 import AdminFeedback from './pages/AdminFeedback';
-import AdminBloodBanks from './pages/AdminBloodBanks';
 import AdminInventory from './pages/AdminInventory';
 import './App.css';
 
 const AUTH_ROUTES = ['/login', '/register'];
 
 function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50">
-      <Navbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+      <Navbar />
       <div className="flex flex-1">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar isOpen={false} onClose={() => {}} />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={
               <ProtectedRoute><Dashboard /></ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute><Profile /></ProtectedRoute>
             } />
             <Route path="/blood-banks" element={<BloodBanks />} />
             <Route path="/blood-banks/:id" element={<BloodBankDetails />} />
@@ -79,16 +70,12 @@ function AppLayout() {
             <Route path="/admin/feedback" element={
               <AdminRoute><AdminFeedback /></AdminRoute>
             } />
-            <Route path="/admin/blood-banks" element={
-              <AdminRoute><AdminBloodBanks /></AdminRoute>
-            } />
             <Route path="/admin/inventory" element={
               <AdminRoute><AdminInventory /></AdminRoute>
             } />
           </Routes>
         </main>
       </div>
-      <Footer />
     </div>
   );
 }

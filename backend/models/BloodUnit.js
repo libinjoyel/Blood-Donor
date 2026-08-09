@@ -13,7 +13,6 @@ const bloodUnitSchema = new mongoose.Schema({
   donor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Donor is required'],
     index: true,
   },
   bloodGroup: {
@@ -85,24 +84,19 @@ const bloodUnitSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-bloodUnitSchema.pre('save', async function (next) {
-  try {
-    if (!this.unitId) {
-      const last = await this.constructor.findOne({}, { unitId: 1 }).sort({ unitId: -1 });
-      let seq = 1;
-      if (last && last.unitId) {
-        const num = parseInt(last.unitId.replace(/\D/g, ''), 10);
-        seq = (Number.isNaN(num) ? 0 : num) + 1;
-      }
-      this.unitId = `BLD${String(seq).padStart(6, '0')}`;
+bloodUnitSchema.pre('save', async function () {
+  if (!this.unitId) {
+    const last = await this.constructor.findOne({}, { unitId: 1 }).sort({ unitId: -1 });
+    let seq = 1;
+    if (last && last.unitId) {
+      const num = parseInt(last.unitId.replace(/\D/g, ''), 10);
+      seq = (Number.isNaN(num) ? 0 : num) + 1;
     }
-    if (!this.barcode) {
-      const suffix = (this.unitId || '').replace(/^BLD/, '');
-      this.barcode = `LF${suffix}`;
-    }
-    next();
-  } catch (error) {
-    next(error);
+    this.unitId = `BLD${String(seq).padStart(6, '0')}`;
+  }
+  if (!this.barcode) {
+    const suffix = (this.unitId || '').replace(/^BLD/, '');
+    this.barcode = `LF${suffix}`;
   }
 });
 

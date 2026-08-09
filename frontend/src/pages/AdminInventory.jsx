@@ -30,7 +30,7 @@ const COMPONENT_SHELF_LIFE_DAYS = {
 };
 
 const EMPTY_FORM = {
-  donor: '', bloodGroup: '', component: '', donationDate: '', expiryDate: '', storageLocation: '', remarks: '',
+  bloodGroup: '', component: '', donationDate: '', expiryDate: '', storageLocation: '', remarks: '',
 };
 
 function addDays(date, days) {
@@ -96,7 +96,6 @@ export default function AdminInventory() {
 
   const [units, setUnits] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
@@ -124,6 +123,9 @@ export default function AdminInventory() {
   const [confirm, setConfirm] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  const [overview, setOverview] = useState(null);
+  const [expiringOnly, setExpiringOnly] = useState(false);
+
   const hasFilters = Object.values(filters).some(Boolean);
 
   const fetchUnits = useCallback(() => {
@@ -140,15 +142,13 @@ export default function AdminInventory() {
     api.get('/inventory/locations').then((res) => setLocations(res.data || [])).catch(() => {});
   }, []);
 
-  const fetchDonors = useCallback(() => {
-    api.get('/admin/users?role=donor')
-      .then((res) => setDonors(res.data || []))
-      .catch(() => {});
+  const fetchOverview = useCallback(() => {
+    api.get('/inventory/overview').then((res) => setOverview(res.data)).catch(() => {});
   }, []);
 
   useEffect(() => { fetchUnits(); }, [fetchUnits]);
   useEffect(() => { fetchLocations(); }, [fetchLocations]);
-  useEffect(() => { fetchDonors(); }, [fetchDonors]);
+  useEffect(() => { fetchOverview(); }, [fetchOverview]);
 
   const expiryPreview = useMemo(() => {
     if (form.component && form.donationDate) {
@@ -156,6 +156,19 @@ export default function AdminInventory() {
     }
     return '';
   }, [form.component, form.donationDate]);
+
+  const isExpiringSoon = (u) => {
+    if (!u.expiryDate || !['Available', 'Reserved'].includes(u.status)) return false;
+    const expiry = new Date(u.expiryDate);
+    const now = new Date();
+    if (expiry < now) return false;
+    return expiry <= addDays(now, 7);
+  };
+
+  const visibleUnits = useMemo(() => {
+    if (!expiringOnly) return units;
+    return units.filter(isExpiringSoon);
+  }, [units, expiringOnly]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -166,7 +179,6 @@ export default function AdminInventory() {
   const openEdit = (u) => {
     setEditingId(u._id);
     setForm({
-      donor: u.donor?._id || '',
       bloodGroup: u.bloodGroup || '',
       component: u.component || '',
       donationDate: toInputDate(u.donationDate),
@@ -185,14 +197,9 @@ export default function AdminInventory() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!editingId && !form.donor) {
-      showToast('Please select a donor', 'error');
-      return;
-    }
     setSaving(true);
     try {
       const payload = {
-        donor: form.donor,
         bloodGroup: form.bloodGroup,
         component: form.component,
         donationDate: form.donationDate,
@@ -210,6 +217,7 @@ export default function AdminInventory() {
       closeForm();
       fetchUnits();
       fetchLocations();
+      fetchOverview();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to save blood unit', 'error');
     } finally {
@@ -246,6 +254,7 @@ export default function AdminInventory() {
       showToast(`Unit ${reserveUnit.unitId} reserved`);
       setReserveUnit(null);
       fetchUnits();
+      fetchOverview();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to reserve unit', 'error');
     } finally {
@@ -269,6 +278,7 @@ export default function AdminInventory() {
       showToast(`Unit ${issueUnit.unitId} issued to ${issueForm.patientName}`);
       setIssueUnit(null);
       fetchUnits();
+      fetchOverview();
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to issue unit', 'error');
     } finally {
@@ -289,6 +299,7 @@ export default function AdminInventory() {
       }
       setConfirm(null);
       fetchUnits();
+      fetchOverview();
     } catch (err) {
       showToast(err.response?.data?.message || 'Action failed', 'error');
     } finally {
@@ -310,6 +321,21 @@ export default function AdminInventory() {
           <Plus size={16} />
           Add Blood Unit
         </button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
+        {[
+          { label: 'Available', value: overview?.stats?.totalAvailable ?? 0, cls: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Reserved', value: overview?.stats?.totalReserved ?? 0, cls: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Issued', value: overview?.stats?.totalIssued ?? 0, cls: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Expiring Soon', value: overview?.stats?.expiringSoon ?? 0, cls: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: 'Expired', value: overview?.stats?.totalExpired ?? 0, cls: 'text-rose-600', bg: 'bg-rose-50' },
+        ].map((s) => (
+          <div key={s.label} className={`${s.bg} rounded-xl border border-slate-100 p-4`}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{s.label}</p>
+            <p className={`text-2xl font-bold mt-1 ${s.cls}`}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
@@ -346,7 +372,18 @@ export default function AdminInventory() {
                 <Filter size={14} /> Clear
               </button>
             )}
-            <span className="text-xs text-slate-400 ml-auto">{units.length} unit{units.length !== 1 ? 's' : ''}</span>
+            <button
+              onClick={() => setExpiringOnly((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                expiringOnly
+                  ? 'bg-orange-50 border-orange-300 text-orange-700'
+                  : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-600'
+              }`}
+            >
+              <AlertTriangle size={14} />
+              Expiring Soon
+            </button>
+            <span className="text-xs text-slate-400 ml-auto">{visibleUnits.length} unit{visibleUnits.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
@@ -354,7 +391,7 @@ export default function AdminInventory() {
           <div className="flex items-center justify-center py-20">
             <Loader2 size={28} className="animate-spin text-rose-500" />
           </div>
-        ) : units.length === 0 ? (
+        ) : visibleUnits.length === 0 ? (
           <div className="p-14 text-center">
             <Package size={40} className="mx-auto mb-3 text-slate-300" />
             <p className="text-sm text-slate-500 font-medium">No blood units found.</p>
@@ -368,7 +405,6 @@ export default function AdminInventory() {
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Unit ID</th>
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Blood</th>
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Component</th>
-                  <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Donor</th>
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Donation</th>
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Expiry</th>
                   <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Storage</th>
@@ -377,7 +413,7 @@ export default function AdminInventory() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {units.map((u) => (
+                {visibleUnits.map((u) => (
                   <tr key={u._id} className="hover:bg-slate-50 transition-colors duration-150">
                     <td className="px-4 py-3">
                       <button onClick={() => openView(u)} className="text-sm font-semibold text-rose-600 hover:text-rose-700 transition-colors">{u.unitId}</button>
@@ -389,12 +425,16 @@ export default function AdminInventory() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-700">{u.component}</td>
-                    <td className="px-4 py-3 text-slate-600">{u.donor?.name || '—'}</td>
                     <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{formatDate(u.donationDate)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`${u.expiryDate && new Date(u.expiryDate) < new Date() && ['Available', 'Reserved'].includes(u.status) ? 'text-rose-600 font-semibold' : 'text-slate-600'}`}>
                         {formatDate(u.expiryDate)}
                       </span>
+                      {isExpiringSoon(u) && (
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-50 text-orange-600">
+                          <AlertTriangle size={9} /> Expiring soon
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{u.storageLocation || '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={u.status} /></td>
@@ -432,13 +472,6 @@ export default function AdminInventory() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Donor">
-                  <select value={form.donor} onChange={(e) => setForm({ ...form, donor: e.target.value })} required disabled={!!editingId}
-                    className={inputCls}>
-                    <option value="">Select Donor</option>
-                    {donors.map((d) => <option key={d._id} value={d._id}>{d.name} ({d.bloodGroup || '—'})</option>)}
-                  </select>
-                </Field>
                 <Field label="Blood Group">
                   <select value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} required className={inputCls}>
                     <option value="">Select</option>
@@ -505,7 +538,6 @@ export default function AdminInventory() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Blood Group</p><p className="text-sm font-bold text-rose-700 mt-0.5">{viewUnit.bloodGroup}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Component</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.component}</p></div>
-              <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Donor</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.donor?.name || '—'}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Storage Location</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.storageLocation || '—'}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Donation Date</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{formatDate(viewUnit.donationDate)}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Expiry Date</p><p className={`text-sm font-semibold mt-0.5 ${viewUnit.expiryDate && new Date(viewUnit.expiryDate) < new Date() ? 'text-rose-600' : 'text-slate-800'}`}>{formatDate(viewUnit.expiryDate)}</p></div>
