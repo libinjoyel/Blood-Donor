@@ -5,13 +5,13 @@ const ELIGIBILITY_DAYS = 90;
 
 exports.getDonations = async (req, res) => {
   try {
-    const donations = await DonationHistory.find({ userId: req.user._id })
-      .populate('bloodBankId', 'name city')
-      .sort({ donationDate: -1 });
+    const [donations, user] = await Promise.all([
+      DonationHistory.findByUser(req.user._id),
+      User.findById(req.user._id),
+    ]);
 
-    const user = await User.findById(req.user._id).select('lastDonationDate donationCount');
     let nextEligibleDate = null;
-    if (user.lastDonationDate) {
+    if (user?.lastDonationDate) {
       const nextDate = new Date(user.lastDonationDate);
       nextDate.setDate(nextDate.getDate() + ELIGIBILITY_DAYS);
       nextEligibleDate = nextDate;
@@ -25,10 +25,7 @@ exports.getDonations = async (req, res) => {
 
 exports.getDonation = async (req, res) => {
   try {
-    const donation = await DonationHistory.findOne({
-      _id: req.params.id,
-      userId: req.user._id,
-    }).populate('bloodBankId', 'name city address phone');
+    const donation = await DonationHistory.findOneForUser(req.params.id, req.user._id);
     if (!donation) {
       return res.status(404).json({ message: 'Donation record not found' });
     }

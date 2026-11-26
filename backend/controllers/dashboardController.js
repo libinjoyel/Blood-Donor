@@ -4,17 +4,14 @@ const UrgentRequest = require('../models/UrgentRequest');
 
 exports.getDashboard = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const [user, totalBloodBanks, totalDonors, recentRequests] = await Promise.all([
+      User.findById(req.user._id),
+      BloodBank.count(),
+      User.count({ role: 'donor' }),
+      UrgentRequest.findAll({ status: 'urgent', limit: 5 }),
+    ]);
 
     const totalAppointments = user.nextAppointment ? 1 : 0;
-
-    const totalBloodBanks = await BloodBank.countDocuments();
-
-    const totalDonors = await User.countDocuments({ role: 'donor' });
-
-    const recentRequests = await UrgentRequest.find({ status: 'urgent' })
-      .sort({ createdAt: -1 })
-      .limit(5);
 
     res.json({
       user: {

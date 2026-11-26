@@ -4,7 +4,6 @@ const BloodStock = require('../models/BloodStock');
 const DonationHistory = require('../models/DonationHistory');
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const COMPONENTS = ['Whole Blood', 'Red Blood Cells', 'Plasma', 'Platelets'];
 
 const COMPONENT_SHELF_LIFE_DAYS = {
   'Whole Blood': 35,
@@ -34,26 +33,15 @@ async function logTransaction({ bloodUnit, action, user, notes }) {
 }
 
 async function markExpiredUnits() {
-  const now = new Date();
-  const expired = await BloodUnit.find({
-    status: { $in: ['Available', 'Reserved'] },
-    expiryDate: { $lt: now },
-  });
-  for (const unit of expired) {
-    unit.status = 'Expired';
-    await unit.save();
-    await logTransaction({ bloodUnit: unit, action: 'Expired', notes: 'Auto-expired on reaching expiry date' });
+  const expired = await BloodUnit.expirePendingUnits(new Date());
+  if (expired.length > 0) {
+    await Promise.all(
+      expired.map((unit) =>
+        logTransaction({ bloodUnit: unit, action: 'Expired', notes: 'Auto-expired on reaching expiry date' })
+      )
+    );
   }
   return expired.length;
-}
-
-async function markExpiringSoon() {
-  const now = new Date();
-  const in7Days = addDays(now, 7);
-  return BloodUnit.countDocuments({
-    status: { $in: ['Available', 'Reserved'] },
-    expiryDate: { $gte: now, $lte: in7Days },
-  });
 }
 
 function monthKey(date) {
@@ -82,36 +70,32 @@ exports.getUnits = async (req, res) => {
       search, bloodGroup, component, status, storageLocation,
       donationDate, expiryDate,
     } = req.query;
-    const filter = {};
 
-    if (search) {
-      const regex = { $regex: search, $options: 'i' };
-      filter.$or = [
-        { unitId: regex },
-        { barcode: regex },
-        { storageLocation: regex },
-        { remarks: regex },
-        { reservedFor: regex },
-      ];
-    }
-    if (bloodGroup) filter.bloodGroup = bloodGroup;
-    if (component) filter.component = component;
-    if (status) filter.status = status;
-    if (storageLocation) filter.storageLocation = { $regex: storageLocation, $options: 'i' };
+    let donationDateStart;
+    let donationDateEnd;
     if (donationDate) {
-      const start = new Date(donationDate);
-      const end = addDays(start, 1);
-      filter.donationDate = { $gte: start, $lt: end };
-    }
-    if (expiryDate) {
-      const start = new Date(expiryDate);
-      const end = addDays(start, 1);
-      filter.expiryDate = { $gte: start, $lt: end };
+      donationDateStart = new Date(donationDate);
+      donationDateEnd = addDays(donationDateStart, 1);
     }
 
-    const units = await BloodUnit.find(filter)
-      .populate('donor', 'name email phone bloodGroup')
-      .sort({ createdAt: -1 });
+    let expiryDateStart;
+    let expiryDateEnd;
+    if (expiryDate) {
+      expiryDateStart = new Date(expiryDate);
+      expiryDateEnd = addDays(expiryDateStart, 1);
+    }
+
+    const units = await BloodUnit.findAll({
+      search,
+      bloodGroup,
+      component,
+      status,
+      storageLocation,
+      donationDateStart,
+      donationDateEnd,
+      expiryDateStart,
+      expiryDateEnd,
+    });
     res.json(units);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -120,7 +104,7 @@ exports.getUnits = async (req, res) => {
 
 exports.getUnit = async (req, res) => {
   try {
-    const unit = await BloodUnit.findById(req.params.id).populate('donor', 'name email phone bloodGroup');
+    const unit = await BloodUnit.findById(req.params.id);
     if (!unit) {
       return res.status(404).json({ message: 'Blood unit not found' });
     }
@@ -143,7 +127,7 @@ exports.createUnit = async (req, res) => {
       ? new Date(expiryDate)
       : addDays(donation, COMPONENT_SHELF_LIFE_DAYS[component] || 35);
 
-    const unit = new BloodUnit({
+    const unit = await BloodUnit.create({
       bloodGroup,
       component,
       donationDate: donation,
@@ -151,7 +135,6 @@ exports.createUnit = async (req, res) => {
       storageLocation: storageLocation || '',
       remarks: remarks || '',
     });
-    await unit.save();
     await logTransaction({ bloodUnit: unit, action: 'Created', user: req.user, notes: `Unit created (${component})` });
 
     res.status(201).json(unit);
@@ -171,8 +154,7 @@ exports.updateUnit = async (req, res) => {
     if (storageLocation !== undefined) update.storageLocation = storageLocation;
     if (remarks !== undefined) update.remarks = remarks;
 
-    const unit = await BloodUnit.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
-      .populate('donor', 'name email phone bloodGroup');
+    const unit = await BloodUnit.updateById(req.params.id, update);
     if (!unit) {
       return res.status(404).json({ message: 'Blood unit not found' });
     }
@@ -185,7 +167,7 @@ exports.updateUnit = async (req, res) => {
 
 exports.deleteUnit = async (req, res) => {
   try {
-    const unit = await BloodUnit.findByIdAndDelete(req.params.id);
+    const unit = await BloodUnit.deleteById(req.params.id);
     if (!unit) {
       return res.status(404).json({ message: 'Blood unit not found' });
     }
@@ -215,13 +197,13 @@ exports.reserveUnit = async (req, res) => {
       return res.status(400).json({ message: `Only available units can be reserved (current status: ${unit.status})` });
     }
 
-    unit.status = 'Reserved';
-    unit.reservedFor = reservedFor || '';
-    unit.reservedAt = new Date();
-    await unit.save();
-    await logTransaction({ bloodUnit: unit, action: 'Reserved', user: req.user, notes: remarks || reservedFor || 'Reserved for patient' });
+    const populated = await BloodUnit.updateById(unit._id, {
+      status: 'Reserved',
+      reservedFor: reservedFor || '',
+      reservedAt: new Date(),
+    });
+    await logTransaction({ bloodUnit: populated, action: 'Reserved', user: req.user, notes: remarks || reservedFor || 'Reserved for patient' });
 
-    const populated = await BloodUnit.findById(unit._id).populate('donor', 'name email phone bloodGroup');
     res.json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -243,30 +225,27 @@ exports.issueUnit = async (req, res) => {
     }
 
     const previousStatus = unit.status;
-    unit.status = 'Issued';
-    unit.issuedTo = {
-      patientName: patientName || '',
-      hospital: hospital || '',
-      doctor: doctor || '',
-      issueDate: new Date(),
-    };
-    unit.issuedAt = new Date();
-    await unit.save();
+    const now = new Date();
+    const populated = await BloodUnit.updateById(unit._id, {
+      status: 'Issued',
+      issuedTo: {
+        patientName: patientName || '',
+        hospital: hospital || '',
+        doctor: doctor || '',
+        issueDate: now,
+      },
+      issuedAt: now,
+    });
 
-    const stock = await BloodStock.findOne({ bloodGroup: unit.bloodGroup });
-    if (stock && stock.units > 0) {
-      stock.units -= 1;
-      await stock.save();
-    }
+    await BloodStock.decrementIfAvailable(unit.bloodGroup);
 
     await logTransaction({
-      bloodUnit: unit,
+      bloodUnit: populated,
       action: 'Issued',
       user: req.user,
       notes: [previousStatus, patientName, hospital, doctor, remarks].filter(Boolean).join(' | '),
     });
 
-    const populated = await BloodUnit.findById(unit._id).populate('donor', 'name email phone bloodGroup');
     res.json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -284,13 +263,13 @@ exports.discardUnit = async (req, res) => {
       return res.status(400).json({ message: 'This unit is already discarded' });
     }
 
-    unit.status = 'Discarded';
-    unit.discardedAt = new Date();
-    unit.discardedReason = remarks || '';
-    await unit.save();
-    await logTransaction({ bloodUnit: unit, action: 'Discarded', user: req.user, notes: remarks || 'Discarded' });
+    const populated = await BloodUnit.updateById(unit._id, {
+      status: 'Discarded',
+      discardedAt: new Date(),
+      discardedReason: remarks || '',
+    });
+    await logTransaction({ bloodUnit: populated, action: 'Discarded', user: req.user, notes: remarks || 'Discarded' });
 
-    const populated = await BloodUnit.findById(unit._id).populate('donor', 'name email phone bloodGroup');
     res.json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -300,10 +279,7 @@ exports.discardUnit = async (req, res) => {
 exports.getTransactions = async (req, res) => {
   try {
     const { bloodUnit } = req.query;
-    const filter = {};
-    if (bloodUnit) filter.bloodUnit = bloodUnit;
-
-    const transactions = await BloodTransaction.find(filter).sort({ actionDate: -1 });
+    const transactions = await BloodTransaction.findAll({ bloodUnit });
     res.json(transactions);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -312,8 +288,8 @@ exports.getTransactions = async (req, res) => {
 
 exports.getLocations = async (req, res) => {
   try {
-    const locations = await BloodUnit.distinct('storageLocation');
-    res.json(locations.filter(Boolean).sort());
+    const locations = await BloodUnit.getDistinctLocations();
+    res.json(locations);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -325,33 +301,25 @@ exports.getOverview = async (req, res) => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = addDays(todayStart, 1);
+    const since180 = addDays(now, -180);
 
-    const [allUnits, issuedToday, expiringSoon, donationAgg, usageAgg, expiryAgg, stockRows] = await Promise.all([
-      BloodUnit.find().populate('donor', 'name'),
-      BloodUnit.countDocuments({ status: 'Issued', issuedAt: { $gte: todayStart, $lt: todayEnd } }),
-      markExpiringSoon(),
-      DonationHistory.aggregate([
-        { $match: { donationDate: { $gte: addDays(now, -180) }, status: 'completed' } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$donationDate' } }, count: { $sum: '$units' } } },
-      ]),
-      BloodUnit.aggregate([
-        { $match: { status: 'Issued', issuedAt: { $exists: true, $ne: null, $gte: addDays(now, -180) } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$issuedAt' } }, count: { $sum: 1 } } },
-      ]),
-      BloodUnit.aggregate([
-        { $match: { status: { $in: ['Available', 'Reserved'] }, expiryDate: { $exists: true, $ne: null } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$expiryDate' } }, count: { $sum: 1 } } },
-      ]),
-      BloodStock.find(),
+    const [unitList, issuedToday, donationAgg, usageAgg, expiryAgg, stockRows] = await Promise.all([
+      BloodUnit.findAll(),
+      BloodUnit.countIssuedBetween(todayStart, todayEnd),
+      DonationHistory.getMonthlyDonations(since180),
+      BloodUnit.getMonthlyUsage(since180),
+      BloodUnit.getExpiryTrendAgg(),
+      BloodStock.findAll(),
     ]);
 
     const byGroup = {};
-    const unitList = allUnits;
 
     BLOOD_GROUPS.forEach((bg) => {
       const groupUnits = unitList.filter((u) => u.bloodGroup === bg && u.status === 'Available');
       const reserved = unitList.filter((u) => u.bloodGroup === bg && u.status === 'Reserved').length;
-      const expiring = unitList.filter((u) => u.bloodGroup === bg && ['Available', 'Reserved'].includes(u.status) && u.expiryDate >= now && u.expiryDate <= addDays(now, 7)).length;
+      const expiring = unitList.filter(
+        (u) => u.bloodGroup === bg && ['Available', 'Reserved'].includes(u.status) && new Date(u.expiryDate) >= now && new Date(u.expiryDate) <= addDays(now, 7)
+      ).length;
       const manual = stockRows.find((s) => s.bloodGroup === bg);
       byGroup[bg] = {
         available: groupUnits.length,
@@ -368,7 +336,9 @@ exports.getOverview = async (req, res) => {
     const totalDiscarded = unitList.filter((u) => u.status === 'Discarded').length;
     const totalIssued = unitList.filter((u) => u.status === 'Issued').length;
     const bloodGroupsBelowThreshold = BLOOD_GROUPS.filter((bg) => byGroup[bg].belowThreshold);
-    const expiringSoonAll = unitList.filter((u) => ['Available', 'Reserved'].includes(u.status) && u.expiryDate >= now && u.expiryDate <= addDays(now, 7)).length;
+    const expiringSoonAll = unitList.filter(
+      (u) => ['Available', 'Reserved'].includes(u.status) && new Date(u.expiryDate) >= now && new Date(u.expiryDate) <= addDays(now, 7)
+    ).length;
 
     const keys = lastMonths(6);
     const donationsMap = Object.fromEntries(donationAgg.map((d) => [d._id, d.count]));

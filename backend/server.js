@@ -1,13 +1,29 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
-
-dotenv.config();
+const { pool } = require('./config/db');
+const { runMigrations } = require('./db/migrate');
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean)
+    : []),
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    const normalized = origin.replace(/\/+$/, '');
+    if (allowedOrigins.includes(normalized)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 const DEFAULT_ROLES = [
@@ -52,13 +68,6 @@ async function seedBloodBanks() {
   }
 }
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    return seedRoles().then(seedBloodBanks);
-  })
-  .catch((err) => console.error('MongoDB connection error:', err));
-
 const authRoutes = require('./routes/authRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const bloodBankRoutes = require('./routes/bloodBankRoutes');
@@ -79,6 +88,24 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+async function startServer() {
+  try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+    await pool.query('SELECT 1');
+    console.log('Connected to Neon PostgreSQL');
+    await runMigrations();
+    await seedRoles();
+    await seedBloodBanks();
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('PostgreSQL startup error:', err);
+    process.exit(1);
+  }
+}
+
+startServer();

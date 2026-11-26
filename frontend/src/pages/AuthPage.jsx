@@ -91,49 +91,60 @@ function LeftPanel() {
   }, []);
 
   return (
-    <div className="hidden md:flex w-full md:w-[45%] lg:w-[40%] min-h-screen bg-gradient-to-b from-[#1a2332] to-[#4a1525] flex-col justify-center items-center p-8 text-center text-white select-none relative overflow-hidden">
+    <div className="hidden md:flex md:sticky md:top-0 md:h-screen w-full md:w-[45%] lg:w-[40%] bg-gradient-to-b from-[#1a2332] via-[#2b1a2a] to-[#4a1525] flex-col justify-between items-center px-10 py-12 lg:px-12 lg:py-14 text-center text-white select-none relative overflow-hidden">
       {/* Decorative circles */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
-      <div className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-rose-500/10" />
-      <div className="absolute top-1/3 left-1/4 w-40 h-40 rounded-full bg-cyan-500/5" />
+      <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/[0.04] pointer-events-none" />
+      <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-rose-500/10 pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-rose-500/[0.04] blur-2xl pointer-events-none" />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-lg mx-auto">
-        {/* Brand */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
-            <Droplets size={28} className="text-rose-300" />
+      {/* Brand placed cleanly near top */}
+      <div className="relative z-10 w-full max-w-md mx-auto pt-2">
+        <div className="flex items-center justify-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/15 backdrop-blur-sm flex items-center justify-center shadow-lg">
+            <Droplets size={26} className="text-rose-300" />
           </div>
           <span className="text-3xl font-bold text-white tracking-tight">LifeFlow</span>
         </div>
+      </div>
 
+      {/* Centered Heartbeat + Fact for comfortable reading */}
+      <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center my-auto py-8">
         {/* Heartbeat SVG */}
-        <svg className="w-full h-16 mb-10" viewBox="0 0 400 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className="w-full max-w-sm h-16 mb-10" viewBox="0 0 400 60" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 30 L60 30 L70 10 L80 50 L90 20 L100 40 L110 25 L120 35 L130 28 L140 32 L150 30 L200 30 L210 10 L220 50 L230 20 L240 40 L250 25 L260 35 L270 28 L280 32 L290 30 L340 30 L350 20 L360 40 L370 30 L400 30"
-            stroke="rgba(255,255,255,0.25)" strokeWidth="2" className="animate-pulse" />
+            stroke="rgba(255,255,255,0.22)" strokeWidth="2" className="animate-pulse" />
           <path d="M0 30 L60 30 L70 10 L80 50 L90 20 L100 40 L110 25 L120 35 L130 28 L140 32 L150 30 L200 30 L210 10 L220 50 L230 20 L240 40 L250 25 L260 35 L270 28 L280 32 L290 30 L340 30 L350 20 L360 40 L370 30 L400 30"
-            stroke="rgba(251, 113, 133, 0.6)" strokeWidth="2.5"
+            stroke="rgba(251, 113, 133, 0.7)" strokeWidth="2.5"
             strokeDasharray="400" strokeDashoffset="400">
             <animate attributeName="stroke-dashoffset" from="400" to="0" dur="3s" repeatCount="indefinite" />
           </path>
         </svg>
 
-        {/* Rotating stat - my-6 spacing */}
-        <div className={`my-6 transition-all duration-300 ${fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
-          <div className="flex justify-center mb-4">{ROTATING_FACTS[factIdx].icon}</div>
-          <p className="text-xl font-semibold text-white leading-snug mb-2">{ROTATING_FACTS[factIdx].text}</p>
-          <p className="text-sm text-white/60">{ROTATING_FACTS[factIdx].sub}</p>
+        {/* Rotating stat */}
+        <div className={`w-full min-h-[156px] flex flex-col items-center justify-center px-3 transition-all duration-300 ${fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
+          <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center mb-5 shadow-inner">
+            {ROTATING_FACTS[factIdx].icon}
+          </div>
+          <p className="text-xl lg:text-[22px] font-semibold text-white leading-relaxed tracking-tight mb-2.5 max-w-sm">
+            {ROTATING_FACTS[factIdx].text}
+          </p>
+          <p className="text-sm lg:text-[15px] text-rose-100/80 leading-relaxed max-w-xs">
+            {ROTATING_FACTS[factIdx].sub}
+          </p>
         </div>
 
-        {/* Indicator dots - no overlap */}
-        <div className="flex justify-center gap-2 mt-6">
+        {/* Indicator dots */}
+        <div className="flex justify-center gap-2 mt-8">
           {ROTATING_FACTS.map((_, i) => (
             <button key={i} onClick={() => { setFade(false); setTimeout(() => { setFactIdx(i); setFade(true); }, 300); }}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${i === factIdx ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/50'
+              className={`h-2 rounded-full transition-all duration-300 ${i === factIdx ? 'bg-white w-6' : 'bg-white/30 w-2 hover:bg-white/50'
                 }`} aria-label={`Fact ${i + 1}`} />
           ))}
         </div>
       </div>
+
+      {/* Bottom balance spacer */}
+      <div className="relative z-10 h-6" aria-hidden="true" />
     </div>
   );
 }
@@ -264,7 +275,7 @@ function RegisterForm({ onSuccess, onError }) {
   const nameRef = useRef(null);
 
   const [form, setForm] = useState({
-    name: '', email: '', phone: '', bloodGroup: '', role: 'donor',
+    name: '', email: '', phone: '', bloodGroup: '',
     password: '', confirmPassword: '',
   });
   const [showPw, setShowPw] = useState(false);
@@ -289,7 +300,7 @@ function RegisterForm({ onSuccess, onError }) {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Invalid email format';
     if (!form.phone) errs.phone = 'Phone number is required';
     else if (!/^[+]?[\d\s()-]{7,15}$/.test(form.phone)) errs.phone = 'Enter a valid phone number';
-    if (form.role === 'donor' && !form.bloodGroup) errs.bloodGroup = 'Please select your blood group';
+    if (!form.bloodGroup) errs.bloodGroup = 'Please select your blood group';
     if (!form.password) errs.password = 'Password is required';
     else if (form.password.length < 8) errs.password = 'Password must be at least 8 characters';
     if (!form.confirmPassword) errs.confirmPassword = 'Please confirm your password';
@@ -307,7 +318,7 @@ function RegisterForm({ onSuccess, onError }) {
     try {
       const { confirmPassword: _cp, ...data } = form; // eslint-disable-line no-unused-vars
       const res = await register(data);
-      const role = res?.user?.role || form.role;
+      const role = res?.user?.role || 'donor';
       onSuccess(role === 'admin' ? 'Admin' : 'Donor');
       setTimeout(() => navigate(role === 'admin' ? '/admin' : '/dashboard'), 800);
     } catch (err) {
@@ -319,24 +330,6 @@ function RegisterForm({ onSuccess, onError }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-1">
-      {/* Role Selector - grid layout */}
-      <div className="mb-5">
-        <label className="block text-sm font-semibold text-slate-700 mb-2 select-none">I am a...</label>
-        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Account type">
-          {['donor', 'admin'].map((role) => (
-            <button key={role} type="button" role="radio" aria-checked={form.role === role}
-              onClick={() => update('role', role)}
-              className={`flex items-center justify-center gap-2 h-11 px-4 text-sm font-medium rounded-xl border-2 transition-all duration-200 ${form.role === role
-                  ? 'border-rose-500 bg-rose-50/50 text-rose-700 shadow-sm font-semibold'
-                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                }`}>
-              {role === 'donor' ? <Heart size={16} /> : <ShieldCheck size={16} />}
-              {role === 'donor' ? 'Donor' : 'Blood Bank / Admin'}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Full Name */}
       <FormField id="reg-name" label="Full Name" error={errors.name} touched={touched.name}>
         <div className="relative flex items-center">
@@ -364,7 +357,7 @@ function RegisterForm({ onSuccess, onError }) {
       </FormField>
 
       {/* Phone + Blood Group side by side */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-4">
         <FormField id="reg-phone" label="Phone Number" error={errors.phone} touched={touched.phone}>
           <div className="relative flex items-center">
             <InputIcon icon={Phone} />
@@ -377,23 +370,21 @@ function RegisterForm({ onSuccess, onError }) {
           </div>
         </FormField>
 
-        {form.role === 'donor' && (
-          <FormField id="reg-blood" label="Blood Group" error={errors.bloodGroup} touched={touched.bloodGroup}>
-            <div className="relative flex items-center">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 pointer-events-none z-10">
-                <Droplets size={18} />
-              </div>
-              <select id="reg-blood" value={form.bloodGroup}
-                onChange={(e) => update('bloodGroup', e.target.value)}
-                onBlur={() => touch('bloodGroup')}
-                aria-invalid={!!errors.bloodGroup && touched.bloodGroup}
-                className={`${inputBase} appearance-none ${!form.bloodGroup ? 'text-slate-400' : 'text-slate-900'} ${errors.bloodGroup && touched.bloodGroup ? inputError : inputNormal}`}>
-                <option value="">Select Blood Group</option>
-                {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
-              </select>
+        <FormField id="reg-blood" label="Blood Group" error={errors.bloodGroup} touched={touched.bloodGroup}>
+          <div className="relative flex items-center">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-400 pointer-events-none z-10">
+              <Droplets size={18} />
             </div>
-          </FormField>
-        )}
+            <select id="reg-blood" value={form.bloodGroup}
+              onChange={(e) => update('bloodGroup', e.target.value)}
+              onBlur={() => touch('bloodGroup')}
+              aria-invalid={!!errors.bloodGroup && touched.bloodGroup}
+              className={`${inputBase} appearance-none ${!form.bloodGroup ? 'text-slate-400' : 'text-slate-900'} ${errors.bloodGroup && touched.bloodGroup ? inputError : inputNormal}`}>
+              <option value="">Select Blood Group</option>
+              {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
+            </select>
+          </div>
+        </FormField>
       </div>
 
       {/* Password */}
@@ -483,7 +474,7 @@ export default function AuthPage() {
         <LeftPanel />
 
         {/* Right Form Panel - no inner box, breathing space */}
-        <div className="w-full md:w-[55%] lg:w-[60%] bg-slate-50 flex items-center justify-center p-6 sm:p-12 md:p-16">
+        <div className="w-full md:w-[55%] lg:w-[60%] bg-slate-50 flex items-center justify-center p-4 sm:p-12 md:p-16">
           <div className="max-w-md w-full mx-auto">
             {/* Mobile brand */}
             <div className="md:hidden flex items-center justify-center gap-2 mb-8">

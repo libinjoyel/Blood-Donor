@@ -73,7 +73,7 @@ export default function Notifications() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Notifications</h1>
           <p className="text-sm text-slate-500 mt-0.5">Stay updated with your donation activities</p>

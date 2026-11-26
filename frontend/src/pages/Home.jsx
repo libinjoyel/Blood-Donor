@@ -18,7 +18,7 @@ export default function Home() {
           Join LifeFlow and become part of a community dedicated to saving lives through blood donation.
         </p>
 
-        <div className="flex items-center justify-center gap-3 mb-12">
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
           {!user && (
             <>
               <Link to="/register"

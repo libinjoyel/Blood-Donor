@@ -76,7 +76,7 @@ export default function BookAppointment() {
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Time Slot</label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {TIME_SLOTS.map((slot) => (
               <button key={slot} type="button" onClick={() => setTime(slot)}
                 className={`px-3 py-2 text-sm rounded-lg border transition-all duration-200 ${
@@ -93,7 +93,7 @@ export default function BookAppointment() {
         {error && <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-600 flex items-center gap-2">{error}</div>}
         {success && <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-600 flex items-center gap-2"><CheckCircle size={16} /> {success}</div>}
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 pt-2">
           <button type="submit" disabled={loading}
             className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 disabled:opacity-60 transition-all duration-200 shadow-sm">
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Syringe size={15} />}

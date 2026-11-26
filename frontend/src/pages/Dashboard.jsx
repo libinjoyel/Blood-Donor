@@ -295,7 +295,7 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-slate-900">
                 {greeting}, {user?.name?.split(' ')[0] || 'Donor'} <span className="align-middle">👋</span>
               </h1>
-              <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+              <p className="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-1.5">
                 Here&apos;s your donation overview for today.
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full ml-1">
                   <span className="relative flex w-1.5 h-1.5">
@@ -338,7 +338,7 @@ export default function Dashboard() {
                 {initials}
               </button>
               {profileOpen && (
-                <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute right-0 top-full mt-2" />
+                <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="fixed top-16 right-4 sm:absolute sm:right-0 sm:top-full sm:mt-2" />
               )}
             </div>
           </div>

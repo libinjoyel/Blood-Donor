@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
-import api from '../services/api';
+import api, { clearApiCache } from '../services/api';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const register = async (data) => {
+    clearApiCache();
     const res = await api.post('/auth/register', data);
     localStorage.setItem('token', res.data.token);
     setToken(res.data.token);
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (email, password) => {
+    clearApiCache();
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('token', res.data.token);
     setToken(res.data.token);
@@ -37,6 +39,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    clearApiCache();
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);

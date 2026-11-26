@@ -108,7 +108,7 @@ export default function AdminUsers() {
       {error && <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-600 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-md">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, phone..."
             className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" />
@@ -223,7 +223,7 @@ export default function AdminUsers() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number</label>
                   <div className="relative">

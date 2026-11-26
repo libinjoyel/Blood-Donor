@@ -55,23 +55,23 @@ export default function BloodBanks() {
       </div>
 
       <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 mb-3">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, city, or address..."
             className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 placeholder:text-slate-400" />
         </div>
         <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
-          className="px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
+          className="w-[calc(50%-0.25rem)] sm:w-auto px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
           <option value="">All Cities</option>
           {cities.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
+          className="w-[calc(50%-0.25rem)] sm:w-auto px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
           <option value="">All Services</option>
           {allServices.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <button type="submit" className="px-4 py-2.5 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-all duration-200 shadow-sm">
+        <button type="submit" className="flex-1 sm:flex-none px-4 py-2.5 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-all duration-200 shadow-sm">
           <Search size={15} className="inline mr-1" /> Search
         </button>
         <button type="button" onClick={handleReset}
@@ -133,7 +133,7 @@ export default function BloodBanks() {
             )}
           </div>
           <div className="lg:col-span-2">
-            <div className="lg:sticky lg:top-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm h-[400px] lg:h-[500px]">
+            <div className="lg:sticky lg:top-24 rounded-xl overflow-hidden border border-slate-100 shadow-sm h-[300px] sm:h-[400px] lg:h-[500px]">
               <MapView banks={banks} height="100%" />
             </div>
           </div>

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import MobileMenuBar from './components/MobileMenuBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import Home from './pages/Home';
@@ -26,12 +28,17 @@ import './App.css';
 const AUTH_ROUTES = ['/login', '/register'];
 
 function AppLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar isOpen={false} onClose={() => {}} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+      <Navbar
+        isMenuOpen={sidebarOpen}
+        onMenuClick={() => setSidebarOpen((prev) => !prev)}
+      />
+      <div className="flex flex-1 min-w-0">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={
@@ -76,6 +83,7 @@ function AppLayout() {
           </Routes>
         </main>
       </div>
+      <MobileMenuBar onOpenMenu={() => setSidebarOpen(true)} />
     </div>
   );
 }

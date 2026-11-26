@@ -142,7 +142,7 @@ export default function ProfileCard({ onClose, cardClassName = 'fixed top-16 rig
                     <input name="email" value={user?.email || ''} disabled
                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-400 cursor-not-allowed" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Phone</label>
                       <input name="phone" value={form.phone} onChange={handleChange} required

@@ -3,8 +3,7 @@ const UrgentRequest = require('../models/UrgentRequest');
 exports.create = async (req, res) => {
   try {
     const { hospital, bloodGroup, units, city, contact } = req.body;
-    const request = new UrgentRequest({ hospital, bloodGroup, units, city, contact });
-    await request.save();
+    const request = await UrgentRequest.create({ hospital, bloodGroup, units, city, contact });
     res.status(201).json(request);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -14,26 +13,7 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const { search, bloodGroup, city, status } = req.query;
-    const filter = {};
-
-    if (search) {
-      filter.$or = [
-        { hospital: { $regex: search, $options: 'i' } },
-        { city: { $regex: search, $options: 'i' } },
-        { contact: { $regex: search, $options: 'i' } },
-      ];
-    }
-    if (bloodGroup) {
-      filter.bloodGroup = bloodGroup;
-    }
-    if (city) {
-      filter.city = { $regex: city, $options: 'i' };
-    }
-    if (status) {
-      filter.status = status;
-    }
-
-    const requests = await UrgentRequest.find(filter).sort({ createdAt: -1 });
+    const requests = await UrgentRequest.findAll({ search, bloodGroup, city, status });
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -43,11 +23,7 @@ exports.getAll = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const request = await UrgentRequest.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
+    const request = await UrgentRequest.updateById(req.params.id, { status });
     if (!request) {
       return res.status(404).json({ message: 'Request not found' });
     }

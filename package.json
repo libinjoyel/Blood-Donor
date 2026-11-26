@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "migrate": "npm --prefix backend run migrate",
+    "start": "npm --prefix backend start"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.8",
+    "@neon/env": "^2.1.11"
+  }
+}

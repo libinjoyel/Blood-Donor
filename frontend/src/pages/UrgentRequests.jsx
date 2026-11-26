@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Search, AlertCircle, Loader2, Plus, X, CheckCircle, MapPin, Phone, RotateCcw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -25,6 +27,7 @@ function StatusBadge({ status }) {
 }
 
 export default function UrgentRequests() {
+  const { token } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -86,22 +89,29 @@ export default function UrgentRequests() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Urgent Blood Requests</h1>
           <p className="text-sm text-slate-500 mt-0.5">View and post urgent blood donation requests</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-all duration-200 shadow-sm">
-          {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? 'Cancel' : 'Post Request'}
-        </button>
+        {token ? (
+          <button onClick={() => setShowForm(!showForm)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-all duration-200 shadow-sm">
+            {showForm ? <X size={15} /> : <Plus size={15} />}
+            {showForm ? 'Cancel' : 'Post Request'}
+          </button>
+        ) : (
+          <Link to="/login"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-all duration-200 shadow-sm">
+            Sign in to Post
+          </Link>
+        )}
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmitRequest} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4 space-y-3">
           <h3 className="text-sm font-semibold text-slate-900">Post Urgent Request</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input name="hospital" placeholder="Hospital Name" value={form.hospital} onChange={(e) => setForm({ ...form, hospital: e.target.value })}
               className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" />
             <select name="bloodGroup" value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })}
@@ -123,23 +133,23 @@ export default function UrgentRequests() {
       )}
 
       <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[160px]">
+        <div className="relative w-full sm:flex-1 sm:min-w-[160px]">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search hospital, city..."
             className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" />
         </div>
         <select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
+          className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700 bg-white">
           <option value="">All Blood</option>
           {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
         </select>
         <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
+          className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700 bg-white">
           <option value="">All Cities</option>
           {cities.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700">
+          className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 text-slate-700 bg-white">
           <option value="">All Status</option>
           <option value="urgent">Urgent</option>
           <option value="fulfilled">Fulfilled</option>

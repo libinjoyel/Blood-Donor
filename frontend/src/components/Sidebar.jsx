@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import {
   LayoutDashboard, CalendarClock, CalendarPlus,
   Building2, User, LogOut, X, Heart,
-  Bell, Shield, Boxes,
+  Bell, Shield, Boxes, Droplets,
 } from 'lucide-react';
 import ProfileCard from './ProfileCard';
 
@@ -30,6 +30,20 @@ export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', handleKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, onClose]);
 
   const handleLogout = () => {
     logout();
@@ -64,8 +78,14 @@ export default function Sidebar({ isOpen, onClose }) {
         `}
         aria-label="Sidebar navigation"
       >
-        {/* Mobile close */}
-        <div className="lg:hidden flex items-center justify-end px-3 pt-3 flex-shrink-0">
+        {/* Mobile drawer header */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3.5 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-2 font-bold text-sm tracking-tight text-white">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-rose-500 to-rose-700 flex items-center justify-center">
+              <Droplets size={13} className="text-white" />
+            </div>
+            LifeFlow Menu
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -137,7 +157,10 @@ export default function Sidebar({ isOpen, onClose }) {
               </div>
             </button>
             {profileOpen && (
-              <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute bottom-full left-0 mb-2" />
+              <ProfileCard
+                onClose={() => setProfileOpen(false)}
+                cardClassName="fixed bottom-20 left-4 right-4 sm:right-auto lg:absolute lg:bottom-full lg:left-0 lg:right-auto lg:mb-2"
+              />
             )}
           </div>
           <button

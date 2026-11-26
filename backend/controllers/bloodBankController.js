@@ -3,28 +3,7 @@ const BloodBank = require('../models/BloodBank');
 exports.getAll = async (req, res) => {
   try {
     const { search, city, service, sort } = req.query;
-    const filter = {};
-
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { city: { $regex: search, $options: 'i' } },
-        { address: { $regex: search, $options: 'i' } },
-      ];
-    }
-    if (city) {
-      filter.city = { $regex: city, $options: 'i' };
-    }
-    if (service) {
-      filter.services = { $in: [new RegExp(service, 'i')] };
-    }
-
-    let sortOption = { name: 1 };
-    if (sort === 'city') sortOption = { city: 1, name: 1 };
-    if (sort === '-name') sortOption = { name: -1 };
-    if (sort === '-city') sortOption = { city: -1, name: 1 };
-
-    const banks = await BloodBank.find(filter).sort(sortOption);
+    const banks = await BloodBank.findAll({ search, city, service, sort });
     res.json(banks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -46,8 +25,7 @@ exports.getById = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { name, address, city, phone, email, latitude, longitude, services, workingHours } = req.body;
-    const bank = new BloodBank({ name, address, city, phone, email, latitude, longitude, services, workingHours });
-    await bank.save();
+    const bank = await BloodBank.create({ name, address, city, phone, email, latitude, longitude, services, workingHours });
     res.status(201).json(bank);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -68,7 +46,7 @@ exports.update = async (req, res) => {
     if (services !== undefined) updates.services = services;
     if (workingHours !== undefined) updates.workingHours = workingHours;
 
-    const bank = await BloodBank.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    const bank = await BloodBank.updateById(req.params.id, updates);
     if (!bank) {
       return res.status(404).json({ message: 'Blood bank not found' });
     }
@@ -80,7 +58,7 @@ exports.update = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    const bank = await BloodBank.findByIdAndDelete(req.params.id);
+    const bank = await BloodBank.deleteById(req.params.id);
     if (!bank) {
       return res.status(404).json({ message: 'Blood bank not found' });
     }

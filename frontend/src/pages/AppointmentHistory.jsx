@@ -85,7 +85,7 @@ export default function AppointmentHistory() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-900">My Appointments</h1>
           <p className="text-sm text-slate-500 mt-0.5">View and manage your donation appointments</p>
@@ -124,7 +124,7 @@ export default function AppointmentHistory() {
                   <p className="text-xs text-slate-500 mb-1">
                     {apt.bloodBankId?.city}{apt.bloodBankId?.address ? `, ${apt.bloodBankId.address}` : ''}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-slate-600">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
                     <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(apt.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
                     <span className="flex items-center gap-1"><Clock size={12} /> {apt.time}</span>
                   </div>
@@ -160,7 +160,7 @@ export default function AppointmentHistory() {
                 </div>
               ) : (
                 apt.status === 'scheduled' && (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-50">
+                  <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-50">
                     <button onClick={() => handleComplete(apt._id)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">
                       <CheckCircle size={12} /> Complete

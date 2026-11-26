@@ -55,7 +55,7 @@ export default function AdminAppointments() {
 
       {error && <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-600 flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
 
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
           className="px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700">
           <option value="">All Statuses</option>

@@ -96,14 +96,14 @@ function SortHeader({ label, sortKey, currentKey, onToggle }) {
 
 function StatCard({ title, value, icon, accent, sub }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 hover:shadow-md transition-all duration-200 flex flex-col min-h-[150px]">
+    <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 hover:shadow-md transition-all duration-200 flex flex-col min-h-[130px] sm:min-h-[150px]">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate pr-2">{title}</span>
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${accent || 'bg-slate-100 text-slate-500'}`}>
           {icon}
         </div>
       </div>
-      <p className="text-3xl font-bold text-slate-900 mb-1">{value}</p>
+      <p className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{value}</p>
       {sub && <p className="text-xs text-slate-400 mt-auto leading-snug">{sub}</p>}
     </div>
   );
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
       <Toast toast={toast} onClose={dismissToast} />
 
       <header className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <form onSubmit={handleSearch} className="flex items-center flex-1 min-w-[200px] max-w-md">
+        <form onSubmit={handleSearch} className="flex items-center w-full sm:flex-1 sm:min-w-[200px] sm:max-w-md">
           <div className="relative w-full">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
               <ChevronDown size={14} className="text-slate-400 hidden sm:block" />
             </button>
             {profileOpen && (
-              <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="absolute right-0 top-full mt-2" />
+              <ProfileCard onClose={() => setProfileOpen(false)} cardClassName="fixed top-16 right-4 sm:absolute sm:right-0 sm:top-full sm:mt-2" />
             )}
           </div>
         </div>
@@ -378,7 +378,7 @@ export default function AdminDashboard() {
           <Package size={18} className="text-rose-500" />
           <h2 className="text-base font-semibold text-slate-900">Inventory Overview</h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard title="Available Units" value={overview?.stats?.totalAvailable ?? 0} icon={<Droplets size={18} className="text-emerald-500" />} accent="bg-emerald-50 text-emerald-500" sub="Ready for use" />
           <StatCard title="Reserved Units" value={overview?.stats?.totalReserved ?? 0} icon={<Lock size={18} className="text-amber-500" />} accent="bg-amber-50 text-amber-500" sub="Held for patients" />
           <StatCard title="Issued Today" value={overview?.stats?.issuedToday ?? 0} icon={<CheckCircle2 size={18} className="text-blue-500" />} accent="bg-blue-50 text-blue-500" sub="Issued out to hospitals" />
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
           </h2>
           <span className="text-xs text-slate-400">Low stock alert: below {CRITICAL_THRESHOLD_UNITS} units</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {ALL_BLOOD_TYPES.map((bt) => (
             <BloodStockCard
               key={bt}

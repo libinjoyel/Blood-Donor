@@ -341,28 +341,28 @@ export default function AdminInventory() {
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[220px]">
+            <div className="relative w-full sm:flex-1 sm:min-w-[220px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by Unit ID, Barcode, Storage Location, Remarks..."
                 className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" />
             </div>
             <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
               <option value="">All Status</option>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
             <select value={filters.bloodGroup} onChange={(e) => setFilters({ ...filters, bloodGroup: e.target.value })}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
               <option value="">All Blood Groups</option>
               {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
             <select value={filters.component} onChange={(e) => setFilters({ ...filters, component: e.target.value })}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
               <option value="">All Components</option>
               {COMPONENTS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={filters.storageLocation} onChange={(e) => setFilters({ ...filters, storageLocation: e.target.value })}
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
+              className="flex-1 sm:flex-none px-3 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 bg-white">
               <option value="">All Locations</option>
               {locations.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
@@ -471,7 +471,7 @@ export default function AdminInventory() {
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Blood Group">
                   <select value={form.bloodGroup} onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })} required className={inputCls}>
                     <option value="">Select</option>
@@ -535,17 +535,17 @@ export default function AdminInventory() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Blood Group</p><p className="text-sm font-bold text-rose-700 mt-0.5">{viewUnit.bloodGroup}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Component</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.component}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Storage Location</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.storageLocation || '—'}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Donation Date</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{formatDate(viewUnit.donationDate)}</p></div>
               <div className="bg-slate-50 rounded-xl p-3"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Expiry Date</p><p className={`text-sm font-semibold mt-0.5 ${viewUnit.expiryDate && new Date(viewUnit.expiryDate) < new Date() ? 'text-rose-600' : 'text-slate-800'}`}>{formatDate(viewUnit.expiryDate)}</p></div>
               {viewUnit.reservedFor && (
-                <div className="bg-slate-50 rounded-xl p-3 col-span-2"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Reserved For</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.reservedFor}</p></div>
+                <div className="bg-slate-50 rounded-xl p-3 sm:col-span-2"><p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Reserved For</p><p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.reservedFor}</p></div>
               )}
               {viewUnit.issuedTo?.patientName && (
-                <div className="bg-slate-50 rounded-xl p-3 col-span-2">
+                <div className="bg-slate-50 rounded-xl p-3 sm:col-span-2">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Issued To</p>
                   <p className="text-sm font-semibold text-slate-800 mt-0.5">{viewUnit.issuedTo.patientName}{viewUnit.issuedTo.hospital ? ` · ${viewUnit.issuedTo.hospital}` : ''}{viewUnit.issuedTo.doctor ? ` · Dr. ${viewUnit.issuedTo.doctor}` : ''}</p>
                 </div>
@@ -625,7 +625,7 @@ export default function AdminInventory() {
               <Field label="Patient Name">
                 <input type="text" value={issueForm.patientName} onChange={(e) => setIssueForm({ ...issueForm, patientName: e.target.value })} placeholder="Patient name" className={inputCls} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Hospital">
                   <input type="text" value={issueForm.hospital} onChange={(e) => setIssueForm({ ...issueForm, hospital: e.target.value })} placeholder="Hospital" className={inputCls} />
                 </Field>
